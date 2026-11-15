@@ -37,7 +37,16 @@
 
 ## 快速开始
 
+**本机路径**（换电脑要改）：
+```
+项目目录：D:\Program Files\2026-11-14-16-56-20\monad-blitz
+解释器　：C:\Users\lijy0\.workbuddy\binaries\python\envs\langgraph-lab\Scripts\python.exe
+```
+
 ```bash
+# 0. 先进目录（Windows PowerShell 或 Git Bash 都行）
+cd "D:\Program Files\2026-11-14-16-56-20\monad-blitz"
+
 # 1. 离线模式（不需要任何 API Key，用的是规则引擎）
 COMMITTEE_MODE=offline python run.py
 
@@ -47,6 +56,28 @@ COMMITTEE_MODE=offline python run.py B 2
 # 3. 生成演示页（单文件 HTML，双击可开）
 python export_html.py
 ```
+
+Windows 上没有 `COMMITTEE_MODE=xxx` 这种写法，PowerShell 里要这么写：
+
+```powershell
+$env:COMMITTEE_MODE="offline"
+& "C:\Users\lijy0\.workbuddy\binaries\python\envs\langgraph-lab\Scripts\python.exe" run.py B
+```
+
+## 文件都在哪
+
+| 路径 | 是什么 | 什么时候看 |
+|---|---|---|
+| `run.py` | 命令行入口 | 每次改完代码跑它验证 |
+| `committee/state.py` | 工单结构（LangGraph State） | 想加字段时改这里 |
+| `committee/prompts.py` | 4 个评委的人格和 prompt | 想改评委说话风格时 |
+| `committee/graph.py` | 图的搭法（扇出/扇入/回边） | 想加评委、改轮数时 |
+| `committee/rules.py` | 离线规则引擎 | 想改打分逻辑时 |
+| `committee/llm.py` | 三层降级 | 想接新模型时 |
+| `applications/*.json` | 三份申请书剧本 | 想造新案例时 |
+| `out/demo.html` | **单文件演示页，双击就能看** | 给评委看的那个 |
+| `out/*_result.json` | 三个案例的运行结果存档 | 查历史输出 |
+| `teaching/t1~t3` | 教学教具，不是产品代码 | 学 LangGraph 时 |
 
 ## 接真模型
 
