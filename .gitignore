@@ -1,0 +1,30 @@
+# Python 运行时产物
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
+# 环境变量与密钥 —— 绝对不能提交
+.env
+.env.local
+*.key
+
+# 本地临时文件
+.cache/
+*.log
+
+# 结果存档（每次跑都会变，不纳入版本管理）
+out/*.json
+
+# 但演示页要保留
+!out/demo.html
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# 系统文件
+.DS_Store
+Thumbs.db

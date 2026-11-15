@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 投委会 · 评审现场</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #0d0f14; color: #e6e8ee;
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 14px; line-height: 1.7;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 24px 64px; }
+  header { border-bottom: 1px solid #232733; padding-bottom: 18px; margin-bottom: 22px; }
+  h1 { font-size: 19px; font-weight: 500; margin: 0 0 6px; }
+  .sub { color: #7d8598; font-size: 13px; }
+  .tabs { display: flex; gap: 8px; margin: 18px 0 20px; flex-wrap: wrap; }
+  .tab {
+    padding: 9px 16px; border: 1px solid #262b38; border-radius: 8px;
+    background: #14171f; cursor: pointer; font-size: 13px; color: #a9b1c4;
+    transition: all .12s;
+  }
+  .tab:hover { border-color: #3a4152; color: #e6e8ee; }
+  .tab.on { background: #1d2433; border-color: #4a5a7a; color: #fff; }
+  .tab b { display: block; font-weight: 500; }
+  .tab span { font-size: 12px; opacity: .65; }
+
+  .verdict {
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    padding: 16px 20px; border-radius: 10px; margin-bottom: 22px;
+    border: 1px solid #262b38; background: #14171f;
+  }
+  .badge {
+    padding: 5px 14px; border-radius: 6px; font-size: 13px; font-weight: 500;
+  }
+  .badge.pass { background: #15321f; color: #6ee7a0; border: 1px solid #235c36; }
+  .badge.reject { background: #33161b; color: #ff8f9c; border: 1px solid #5c2530; }
+  .badge.revise { background: #33290f; color: #f0c06a; border: 1px solid #5c4a1e; }
+  .score { font-size: 26px; font-weight: 500; }
+  .score small { font-size: 12px; color: #7d8598; font-weight: 400; margin-left: 4px; }
+
+  .round-label {
+    font-size: 12px; color: #7d8598; text-transform: uppercase;
+    letter-spacing: .08em; margin: 26px 0 12px; padding-left: 2px;
+  }
+  .speech {
+    display: grid; grid-template-columns: 132px 1fr; gap: 16px;
+    padding: 14px 0; border-top: 1px solid #1b1f29;
+  }
+  .who { font-size: 13px; }
+  .who .name { font-weight: 500; display: block; margin-bottom: 4px; }
+  .who .sc { font-size: 12px; color: #7d8598; }
+  .bar { height: 3px; border-radius: 2px; background: #232733; margin-top: 6px; overflow: hidden; }
+  .bar i { display: block; height: 100%; }
+  .said { font-size: 14px; color: #d3d8e4; }
+  .ev { margin-top: 8px; font-size: 12px; color: #6f7a90; }
+  .ev span { display: block; }
+  .ev span::before { content: "· "; }
+  .changed {
+    display: inline-block; font-size: 11px; padding: 1px 7px; margin-left: 6px;
+    border-radius: 4px; background: #33290f; color: #f0c06a; border: 1px solid #5c4a1e;
+    vertical-align: middle;
+  }
+
+  .plan { margin-top: 26px; padding: 16px 20px; border-radius: 10px;
+           border: 1px solid #262b38; background: #14171f; }
+  .plan h3 { font-size: 13px; font-weight: 500; margin: 0 0 12px; color: #a9b1c4; }
+  .mrow { display: flex; justify-content: space-between; padding: 7px 0;
+           border-bottom: 1px solid #1b1f29; font-size: 13px; }
+  .mrow:last-child { border-bottom: none; }
+  .mrow .amt { color: #6ee7a0; font-variant-numeric: tabular-nums; }
+  .empty { color: #7d8598; font-size: 13px; }
+
+  .trace { margin-top: 22px; font-size: 12px; color: #6f7a90; }
+  .trace div { padding: 2px 0; }
+  footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #1b1f29;
+            font-size: 12px; color: #5b6377; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>AI 投委会 · 评审现场</h1>
+    <div class="sub">4 个 Agent 并行评审 · 多轮辩论 · 结论自动写入放款计划</div>
+  </header>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="panel"></div>
+
+  <footer>离线回放 · 生成于 2026-11-15 14:09 · 不依赖网络</footer>
+</div>
+
+<script>
+const CASES = [{"application": {"id": "B", "name": "YieldNova — Monad 生态聚合收益协议", "applicant": "0x1c47...9aE0", "request_usdc": 80000, "one_liner": "聚合 Monad 生态各类收益策略，用户质押 NOVA 代币即可获得稳定年化 38%。", "problem": "Monad 生态 DeFi 协议分散，普通用户难以在十几个协议间做收益优化，资金利用率低。", "solution": "自动把用户资金分配到收益最高的协议，动态再平衡。用户只需质押 NOVA 即可躺赚。", "tech": "Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。", "traction": "内测 3 周，TVL 120 万美元，参与地址 2400 个。", "token": "发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。", "budget": [{"milestone": "M1 完成策略合约审计", "usdc": 30000}, {"milestone": "M2 TVL 达到 1000 万美元", "usdc": 30000}, {"milestone": "M3 上线移动端", "usdc": 20000}], "risk_note": "年化收益率随 TVL 增长可能下降。"}, "max_rounds": 2, "pass_threshold": 6.0, "speeches": [{"role": "compliance", "round": 1, "score": 8, "verdict": "approve", "content": "财务上 YieldNova — Monad 生态聚合收益协议 是干净的。预算拆成三段，每段都有可验收的交付物，金额与申请对得上。他们还主动提了监管风险，这一点比很多申请方诚实。8 分。", "evidence": ["预算拆为 3 个里程碑，可分期监督", "预算合计与申请金额一致（80000 USDC）", "主动披露风险：年化收益率随 TVL 增长可能下降。"]}, {"role": "pm", "round": 1, "score": 5, "verdict": "revise", "content": "YieldNova — Monad 生态聚合收益协议 想解决的问题我听懂了，但痛点描述偏定性，缺少数据；尚无真实用户验证，只有意向。作为产品我持保留态度，5 分。", "evidence": ["有清晰的收入来源"]}, {"role": "tech", "round": 1, "score": 6, "verdict": "revise", "content": "YieldNova — Monad 生态聚合收益协议 的技术栈看得懂，但细节不够。我需要看到更具体的东西才敢给高分，6 分。", "evidence": ["技术栈明确：Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计"]}, {"role": "token", "round": 1, "score": 1, "verdict": "reject", "content": "我必须把话说重一点。YieldNova — Monad 生态聚合收益协议 的经济模型里有三个信号同时出现：用新增资金支付存量收益，需持续回购销毁来维持收益率，团队份额过高，承诺年化 38%，显著高于无风险利率。这不是「模型待优化」，这是典型的用后来者的钱兑付先行者。我算了一下，按他们 38% 的年化和 8% 的初始流通，资金缺口会在一百天左右暴露。我建议直接否决，1 分。", "evidence": ["用新增资金支付存量收益", "需持续回购销毁来维持收益率", "团队份额过高", "承诺年化 38%，显著高于无风险利率"]}, {"role": "compliance", "round": 2, "score": 2, "verdict": "reject", "content": "我原本给的是 8 分，财务结构确实干净。但代币经济学说的一句话我认——这是拿后来者的钱兑付先行者。按我们的风控规则，只要有一个维度判定为不可持续，这一轮就不能放款。我把分数压到 2 分，结论改成驳回。申请方如果愿意改结构，可以重新提交。", "evidence": ["预算拆为 3 个里程碑，可分期监督", "预算合计与申请金额一致（80000 USDC）", "主动披露风险：年化收益率随 TVL 增长可能下降。"]}, {"role": "pm", "round": 2, "score": 3, "verdict": "reject", "content": "我原本想给 YieldNova — Monad 生态聚合收益协议 打个不错的分数，但代币经济学同事指出的问题我认。产品再好，如果经济模型是拿新钱付旧账，那是产品经理救不了的事。我把分数下调到 3 分，支持驳回。", "evidence": ["有清晰的收入来源"]}, {"role": "tech", "round": 2, "score": 6, "verdict": "revise", "content": "维持 6 分。细节不够。", "evidence": ["技术栈明确：Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计"]}, {"role": "token", "round": 2, "score": 1, "verdict": "reject", "content": "维持 1 分，用新增资金支付存量收益；需持续回购销毁来维持收益率；团队份额过高；承诺年化 38%，显著高于无风险利率。", "evidence": ["用新增资金支付存量收益", "需持续回购销毁来维持收益率", "团队份额过高", "承诺年化 38%，显著高于无风险利率"]}], "current_round": 2, "consensus": true, "final_verdict": "reject", "final_score": 3.0, "release_plan": [], "payouts": [], "trace": ["R1 compliance 发言：8分 approve", "R1 pm 发言：5分 revise", "R1 tech 发言：6分 revise", "R1 token 发言：1分 reject", "R1 汇总：均分 5.0，分差 7，存在一票否决，需再辩一轮", "—— 进入第 2 轮辩论 ——", "R2 compliance 发言：2分 reject", "R2 pm 发言：3分 reject", "R2 tech 发言：6分 revise", "R2 token 发言：1分 reject", "R2 汇总：均分 3.0，分差 5，已收敛", "定稿：reject（被 compliance 一票否决）"], "_code": "B"}, {"application": {"id": "A", "name": "MonadPay — 电商免密结算 SDK", "applicant": "0x8fA3...c21B", "request_usdc": 50000, "one_liner": "为东南亚中小电商提供基于 Monad 的免密小额结算 SDK，替代信用卡拒付。", "problem": "东南亚中小电商信用卡拒付率高达 2.3%，单笔手续费 2.9%+0.3 美元，10 美元以下订单几乎无利可图。现有稳定币方案需要用户理解钱包和 gas，转化率损失 60%。", "solution": "提供一个 JS SDK，商户接入后用户无需持币、无需装钱包，后台用代付方式完成结算。单笔成本可降至 0.01 美元以下。", "tech": "TypeScript SDK + 后端 relayer 服务。relayer 用批量提交把多笔结算打包，依赖 Monad 的 300ms 出块和低费用。已完成 POC，日处理 3 万笔压测通过。", "traction": "已接入 12 家商户，月流水 42 万美元，留存率 78%。", "token": "不发代币。收入来自结算手续费分成，抽成 0.05%。", "budget": [{"milestone": "M1 完成 relayer 多签与压测", "usdc": 20000}, {"milestone": "M2 接入 100 家商户", "usdc": 20000}, {"milestone": "M3 开源 SDK 与审计", "usdc": 10000}], "risk_note": "监管：涉及资金归集，需确认当地牌照要求。"}, "max_rounds": 2, "pass_threshold": 6.0, "speeches": [{"role": "compliance", "round": 1, "score": 8, "verdict": "approve", "content": "财务上 MonadPay — 电商免密结算 SDK 是干净的。预算拆成三段，每段都有可验收的交付物，金额与申请对得上。他们还主动提了监管风险，这一点比很多申请方诚实。8 分。", "evidence": ["预算拆为 3 个里程碑，可分期监督", "预算合计与申请金额一致（50000 USDC）", "主动披露风险：监管：涉及资金归集，需确认当地牌照要求。"]}, {"role": "pm", "round": 1, "score": 10, "verdict": "approve", "content": "MonadPay — 电商免密结算 SDK 的痛点是真的。电商小额支付这块我接触过，2.9%+0.3 美元的手续费对小额订单确实是致命的，而且他们已经有月流水验证。产品方向我认可，10 分。", "evidence": ["痛点有量化支撑（提到 5 处具体数值）", "已有落地数据：已接入 12 家商户，月流水 42 万美元，留存率 78%。", "有清晰的收入来源"]}, {"role": "tech", "round": 1, "score": 10, "verdict": "approve", "content": "我把 Monad 的文档翻了一遍。MonadPay — 电商免密结算 SDK 的 relayer 设计用批量提交来摊薄成本，这个思路是对的——Monad 300ms 出块、费用极低，批量提交收益很明显。他们还做过 3 万笔压测，我给 10 分。", "evidence": ["有批量提交设计，符合高吞吐链的最佳实践", "技术栈明确：TypeScript SDK + 后端 relayer 服务。rela", "已有可验证的技术验证，不是纸面方案"]}, {"role": "token", "round": 1, "score": 9, "verdict": "approve", "content": "我很高兴看到 MonadPay — 电商免密结算 SDK 不打算发币。绝大多数项目死在经济模型上，他们直接绕开了这个坑。收入来自真实手续费，这是能持续的结构，9 分。", "evidence": ["不发代币，无投机结构，经济模型干净"]}], "current_round": 1, "consensus": true, "final_verdict": "approve", "final_score": 9.2, "release_plan": [{"milestone": "M1 完成 relayer 多签与压测", "usdc": 20000, "stage": 1, "status": "locked"}, {"milestone": "M2 接入 100 家商户", "usdc": 20000, "stage": 2, "status": "locked"}, {"milestone": "M3 开源 SDK 与审计", "usdc": 10000, "stage": 3, "status": "locked"}], "payouts": [], "trace": ["R1 compliance 发言：8分 approve", "R1 pm 发言：10分 approve", "R1 tech 发言：10分 approve", "R1 token 发言：9分 approve", "R1 汇总：均分 9.2，分差 2，已收敛", "定稿：approve（平均分 9.2 达到阈值 6.0）"], "_code": "A"}, {"application": {"id": "C", "name": "ChainVote — 链上政务投票系统", "applicant": "0x77b2...4fD9", "request_usdc": 60000, "one_liner": "为地方政府提供区块链电子投票系统，保证投票不可篡改。", "problem": "传统电子投票存在后台篡改风险，公众信任度低。", "solution": "把每一张选票上链存证，任何人可验证计票结果。", "tech": "计划在 Monad 上实现。每张选票作为一笔独立交易上链，计票时遍历全部选票交易。预计单个选区 80 万选民，全部选票需在一个投票日内完成上链。", "traction": "已与 2 个区级单位达成意向，尚未签署。", "token": "不发代币，政府采购付费模式。", "budget": [{"milestone": "M1 完成原型与安全评估", "usdc": 25000}, {"milestone": "M2 试点一个选区", "usdc": 25000}, {"milestone": "M3 推广三个区", "usdc": 10000}], "risk_note": "政务项目周期长，采购流程复杂。"}, "max_rounds": 2, "pass_threshold": 6.0, "speeches": [{"role": "compliance", "round": 1, "score": 8, "verdict": "approve", "content": "财务上 ChainVote — 链上政务投票系统 是干净的。预算拆成三段，每段都有可验收的交付物，金额与申请对得上。他们还主动提了监管风险，这一点比很多申请方诚实。8 分。", "evidence": ["预算拆为 3 个里程碑，可分期监督", "预算合计与申请金额一致（60000 USDC）", "主动披露风险：政务项目周期长，采购流程复杂。"]}, {"role": "pm", "round": 1, "score": 5, "verdict": "revise", "content": "ChainVote — 链上政务投票系统 想解决的问题我听懂了，但痛点描述偏定性，缺少数据；尚无真实用户验证，只有意向。作为产品我持保留态度，5 分。", "evidence": ["有清晰的收入来源"]}, {"role": "tech", "round": 1, "score": 1, "verdict": "reject", "content": "ChainVote — 链上政务投票系统 这个方案我有明确的技术反对意见。计票靠遍历全表，状态膨胀后不可持续；技术方案停留在计划阶段，未验证。他们以为问题在链的性能，其实不是——Monad 每秒能处理一万笔，真正的坑是计票逻辑本身。我建议先想清楚数据怎么组织，1 分。", "evidence": ["Monad 出块 300ms、10,000 TPS，性能不是瓶颈；问题在于计票复杂度 O(n) 会随选票数线性劣化"]}, {"role": "token", "round": 1, "score": 9, "verdict": "approve", "content": "我很高兴看到 ChainVote — 链上政务投票系统 不打算发币。绝大多数项目死在经济模型上，他们直接绕开了这个坑。收入来自真实手续费，这是能持续的结构，9 分。", "evidence": ["不发代币，无投机结构，经济模型干净"]}, {"role": "compliance", "round": 2, "score": 2, "verdict": "reject", "content": "我原本给的是 8 分，财务结构确实干净。但技术说的一句话我认——他们以为瓶颈在链的性能，其实在计票逻辑本身。按我们的风控规则，只要有一个维度判定为不可持续，这一轮就不能放款。我把分数压到 2 分，结论改成驳回。申请方如果愿意改结构，可以重新提交。", "evidence": ["预算拆为 3 个里程碑，可分期监督", "预算合计与申请金额一致（60000 USDC）", "主动披露风险：政务项目周期长，采购流程复杂。"]}, {"role": "pm", "round": 2, "score": 5, "verdict": "revise", "content": "我还是维持5分。痛点描述偏定性，缺少数据；尚无真实用户验证，只有意向。", "evidence": ["有清晰的收入来源"]}, {"role": "tech", "round": 2, "score": 1, "verdict": "reject", "content": "维持 1 分。计票靠遍历全表，状态膨胀后不可持续；技术方案停留在计划阶段，未验证。", "evidence": ["Monad 出块 300ms、10,000 TPS，性能不是瓶颈；问题在于计票复杂度 O(n) 会随选票数线性劣化"]}, {"role": "token", "round": 2, "score": 9, "verdict": "approve", "content": "我维持 9 分。没有代币就没有抛压，这个道理很简单。", "evidence": ["不发代币，无投机结构，经济模型干净"]}], "current_round": 2, "consensus": true, "final_verdict": "reject", "final_score": 4.2, "release_plan": [], "payouts": [], "trace": ["R1 compliance 发言：8分 approve", "R1 pm 发言：5分 revise", "R1 tech 发言：1分 reject", "R1 token 发言：9分 approve", "R1 汇总：均分 5.8，分差 8，存在一票否决，需再辩一轮", "—— 进入第 2 轮辩论 ——", "R2 compliance 发言：2分 reject", "R2 pm 发言：5分 revise", "R2 tech 发言：1分 reject", "R2 token 发言：9分 approve", "R2 汇总：均分 4.2，分差 8，已收敛", "定稿：reject（被 compliance 一票否决）"], "_code": "C"}];
+const ROLE_CN = {"pm": "产品经理", "tech": "技术极客", "token": "代币经济学", "compliance": "合规与财务"};
+const ROLE_COLOR = { pm: "#7fb0ff", tech: "#6ee7a0", token: "#f0c06a", compliance: "#c9a0ff" };
+const VERDICT_CN = { approve: "通过", reject: "驳回", revise: "需修改" };
+const VERDICT_CLS = { approve: "pass", reject: "reject", revise: "revise" };
+
+let cur = 0;
+
+function renderTabs() {
+  document.getElementById("tabs").innerHTML = CASES.map((c, i) => {
+    const short = c.application.name.split("—")[0].trim();
+    return `<div class="tab ${i === cur ? "on" : ""}" onclick="pick(${i})">
+      <b>${c._code} · ${short}</b>
+      <span>${VERDICT_CN[c.final_verdict]} · ${c.final_score} 分</span>
+    </div>`;
+  }).join("");
+}
+
+function pick(i) { cur = i; renderTabs(); renderPanel(); }
+
+function scoreByIdx(code, role, rnd) {
+  const c = CASES.find(x => x._code === code);
+  const s = (c.speeches || []).find(x => x.role === role && x.round === rnd);
+  return s ? s.score : null;
+}
+
+function renderPanel() {
+  const c = CASES[cur];
+  const roles = ["pm", "tech", "token", "compliance"];
+  const maxRound = Math.max(...(c.speeches || []).map(s => s.round));
+
+  let roundsHtml = "";
+  for (let r = 1; r <= maxRound; r++) {
+    const list = c.speeches.filter(s => s.round === r)
+      .sort((a, b) => roles.indexOf(a.role) - roles.indexOf(b.role));
+    if (!list.length) continue;
+    roundsHtml += `<div class="round-label">第 ${r} 轮</div>`;
+    roundsHtml += list.map(s => {
+      const before = r > 1 ? scoreByIdx(c._code, s.role, r - 1) : null;
+      const flipped = before !== null && before !== s.score;
+      const arrow = flipped ? ` <span class="changed">${before} → ${s.score}</span>` : "";
+      const pct = (s.score / 10) * 100;
+      return `<div class="speech">
+        <div class="who">
+          <span class="name" style="color:${ROLE_COLOR[s.role]}">${ROLE_CN[s.role]}</span>
+          <span class="sc">${s.score} 分 · ${VERDICT_CN[s.verdict] || s.verdict}${arrow}</span>
+          <div class="bar"><i style="width:${pct}%;background:${ROLE_COLOR[s.role]}"></i></div>
+        </div>
+        <div>
+          <div class="said">${s.content}</div>
+          ${(s.evidence || []).length ? `<div class="ev">${s.evidence.map(e => `<span>${e}</span>`).join("")}</div>` : ""}
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  const plan = c.release_plan || [];
+  const planHtml = plan.length
+    ? plan.map(p => `<div class="mrow"><span>${p.milestone}</span>
+        <span class="amt">${p.usdc.toLocaleString()} USDC</span></div>`).join("")
+      + `<div class="mrow"><span>合计</span><span class="amt">${plan.reduce((a, b) => a + b.usdc, 0).toLocaleString()} USDC</span></div>`
+    : `<div class="empty">未通过审核，不生成放款计划</div>`;
+
+  const trace = (c.trace || []).map(t => `<div>${t}</div>`).join("");
+
+  document.getElementById("panel").innerHTML = `
+    <div class="verdict">
+      <span class="badge ${VERDICT_CLS[c.final_verdict]}">${VERDICT_CN[c.final_verdict]}</span>
+      <span class="score">${c.final_score}<small>综合评分</small></span>
+      <span style="color:#7d8598;font-size:13px">
+        ${c.application.name} · 申请 ${c.application.request_usdc.toLocaleString()} USDC
+      </span>
+    </div>
+    ${roundsHtml}
+    <div class="plan">
+      <h3>放款计划（按里程碑锁定释放）</h3>
+      ${planHtml}
+    </div>
+    <div class="trace">${trace}</div>`;
+}
+
+renderTabs();
+renderPanel();
+</script>
+</body>
+</html>
