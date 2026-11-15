@@ -283,7 +283,10 @@ def _judge_token(app: dict, round_no: int, prev: list[dict]) -> dict[str, Any]:
         others = [s for s in prev if s["role"] != "token" and s["round"] == round_no - 1]
         pm = next((s for s in others if s["role"] == "pm"), None)
         if score <= 3 and pm and pm["score"] >= 7:
-            content = (f"产品经理同事给了高分，我理解——用户确实喜欢 38% 年化。"
+            # ★ 同上一处坑：别再写死「38%」，读真实年化；没抽到就不提具体数字
+            rate = max(_pct_near(token, "年化", "收益") or [0])
+            bait = f"用户确实喜欢 {rate:.0f}% 年化" if rate else "用户确实喜欢它的收益率"
+            content = (f"产品经理同事给了高分，我理解——{bait}。"
                        f"但喜欢它的人越多，这个模型崩得越快。我的结论不变：{score} 分，反对。")
         elif score >= 8:
             content = f"我维持 {score} 分。没有代币就没有抛压，这个道理很简单。"
