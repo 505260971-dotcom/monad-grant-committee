@@ -21,6 +21,39 @@ def _pct(text: str) -> list[float]:
     return [float(x) for x in re.findall(r"(\d+(?:\.\d+)?)\s*%", text)]
 
 
+def _pct_near(text: str, *keywords: str, window: int = 12) -> list[float]:
+    """只抽「跟某个关键词在同一分句内、且紧贴它」的百分比。
+
+    ★ 为什么需要这个函数（真实踩坑，两次）：
+    一个 JSON 字段里塞了「年化 4%、初始流通 8%、团队份额 25%、销毁 0.4%」，
+    如果无脑抽全部百分比，25%（团队份额）会被误判成「承诺年化 25%」，
+    于是文案变成「你们承诺年化 25%」，但申请书上根本没这么写 —— 当场露馅。
+
+    第一次修正：只看关键词附近的数字。结果又出问题 ——
+    只匹配了「年化 38%」（数字在后），漏掉了「获得 38% 年化」（数字在前）。
+    两种写法中文里都常见，所以必须双向匹配。
+
+    处理方式：先按分句切开，含关键词的分句里再取数字。
+    这样既不会跨句误取，也不用考虑前后顺序。
+    """
+    found: list[float] = []
+    # 按中文标点切成分句
+    clauses = re.split(r"[。；，,;\n]", text)
+    for clause in clauses:
+        if not any(kw in clause for kw in keywords):
+            continue
+        # 这个分句里有目标关键词，取它的数字
+        # 但要注意窗口：数字离关键词不能太远，否则可能取错
+        for kw in keywords:
+            pos = clause.find(kw)
+            if pos < 0:
+                continue
+            for m in re.finditer(r"(\d+(?:\.\d+)?)\s*%", clause):
+                if abs(m.start() - pos) <= window:
+                    found.append(float(m.group(1)))
+    return found
+
+
 def _has(text: str, *words: str) -> bool:
     return any(w in text for w in words)
 
@@ -194,12 +227,16 @@ def _judge_token(app: dict, round_no: int, prev: list[dict]) -> dict[str, Any]:
         if _has(token, "回购", "销毁") and _has(token, "维持", "为维持"):
             ponzi.append("需持续回购销毁来维持收益率")
         if _has(token, "锁仓", "线性释放") and _has(token, "团队"):
-            pcts = _pct(token)
-            if any(p >= 20 for p in pcts):
+            team_pcts = _pct_near(token, "团队")
+            if any(p >= 20 for p in team_pcts):
                 ponzi.append("团队份额过高")
 
         # 检查收益承诺是否离谱
-        rates = _pct(token)
+        #
+        # ★ 这里踩过一个坑：一开始用 _pct(token) 抽出所有百分比，
+        # 结果把「团队份额 25%」也当成了「年化 25%」，文案自相矛盾。
+        # 修正：只在「年化 / 收益 / APR / APY」附近取数字，别的地方不作数。
+        rates = _pct_near(token, "年化", "收益", "APR", "APY")
         high = [r for r in rates if 20 <= r <= 200]
         if high:
             ponzi.append(f"承诺年化 {max(high):.0f}%，显著高于无风险利率")
@@ -228,11 +265,19 @@ def _judge_token(app: dict, round_no: int, prev: list[dict]) -> dict[str, Any]:
                        f"暂时不致命，但我要求把释放曲线重新算一遍，{score} 分。")
         else:
             detail = "，".join(ponzi)
-            content = (f"我必须把话说重一点。{app.get('name')} 的经济模型里有三个信号"
-                       f"同时出现：{detail}。"
+            # 收益率和流通比例都用真实抽出来的值，不要写死
+            rate = max(_pct_near(token, "年化", "收益") or [0])
+            circ = max(_pct_near(token, "流通") or [0])
+            calc = ""
+            if rate and circ:
+                # 粗略估算：按流通盘乘年化，算出每日需要的补贴缺口
+                daily = rate / 365
+                calc = (f"我算了一下，按他们 {rate:.0f}% 的年化和 {circ:.0f}% 的初始流通，"
+                        f"每天要凭空变出约 {daily:.2f}% 的流通市值来兑付。")
+            content = (f"我必须把话说重一点。{app.get('name')} 的经济模型里"
+                       f"有 {len(ponzi)} 个信号同时出现：{detail}。"
                        f"这不是「模型待优化」，这是典型的用后来者的钱兑付先行者。"
-                       f"我算了一下，按他们 38% 的年化和 8% 的初始流通，"
-                       f"资金缺口会在一百天左右暴露。"
+                       f"{calc}"
                        f"我建议直接否决，{score} 分。")
     else:
         others = [s for s in prev if s["role"] != "token" and s["round"] == round_no - 1]
