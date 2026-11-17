@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 投委会 · 路演</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;background:#0a0c11}
+  body{
+    color:#e8ebf2;
+    font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ---------- 骨架 ---------- */
+  #bar{position:fixed;top:0;left:0;height:2px;background:#5b8cff;z-index:99;
+       transition:width .35s cubic-bezier(.22,.61,.36,1);box-shadow:0 0 12px #5b8cff88}
+  #pg{position:fixed;right:2.2vw;bottom:1.9vh;font-size:12px;color:#4a5162;z-index:99;
+      letter-spacing:.14em}
+  .scene{position:absolute;inset:0;display:none;padding:5.4vh 6.2vw 7.5vh}
+  /* ★ 整体垂直居中：否则内容少的幕（分歧 / 边界）下半屏全是空的，投影时重心飘在上面 */
+  .scene.on{display:flex;flex-direction:column;justify-content:center}
+  .spacer{flex:1}
+
+  /* ---------- 动画 ---------- */
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .an{opacity:0}
+  .scene.on .an{animation:rise .55s cubic-bezier(.22,.61,.36,1) both}
+  .scene.on .af{animation:fade .6s ease both}
+  /* 只有需要错开层次的地方才用 delay。★ 场景 3 的四列一律不设 delay。 */
+  .d1{animation-delay:.10s!important}
+  .d2{animation-delay:.20s!important}
+  .d3{animation-delay:.30s!important}
+  .d4{animation-delay:.44s!important}
+
+  /* ---------- 字 ---------- */
+  .kicker{font-size:clamp(12px,1vw,14px);letter-spacing:.26em;color:#5b8cff;
+          text-transform:uppercase;margin-bottom:2.4vh}
+  .h1{font-size:clamp(42px,6vw,92px);line-height:1.06;font-weight:600;letter-spacing:-.02em}
+  .h2{font-size:clamp(26px,2.7vw,42px);line-height:1.25;font-weight:600;letter-spacing:-.01em}
+  .lead{font-size:clamp(16px,1.5vw,24px);line-height:1.75;color:#a6aec2}
+  .p{font-size:clamp(14px,1.16vw,19px);line-height:1.8;color:#b9c0d0}
+  .sm{font-size:clamp(12px,.94vw,15px);line-height:1.7;color:#767f94}
+  .dim{color:#5c6478}
+  .blue{color:#7fb0ff}.green{color:#6ee7a0}.amber{color:#f0c06a}.violet{color:#c9a0ff}
+  .red{color:#ff8f9c}
+  .mono{font-family:ui-monospace,"SF Mono",Consolas,monospace;font-size:.92em}
+
+  /* ---------- 场景 0 封面 ---------- */
+  .cover{justify-content:center}
+  .cover .h1 span{color:#5b8cff}
+  .cover .lead{margin-top:3vh;max-width:44em}
+  .cover .foot{margin-top:6vh;display:flex;gap:2.6vw;flex-wrap:wrap;font-size:clamp(12px,1vw,14px);
+               color:#5c6478;align-items:center}
+  .cover .foot b{color:#a6aec2;font-weight:500}
+
+  /* ---------- 场景 1 问题 ---------- */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6vw;margin-top:4vh}
+  .card{border:1px solid #1e2431;border-radius:12px;padding:3vh 1.7vw;background:#0e1118}
+  .card .n{font-size:clamp(34px,4vw,68px);font-weight:600;line-height:1;color:#ff8f9c}
+  .card .t{margin-top:2vh;font-size:clamp(17px,1.5vw,25px);color:#e8ebf2;font-weight:500}
+  .card .d{margin-top:1.2vh;font-size:clamp(13px,1.05vw,17px);color:#8d95a8;line-height:1.75}
+  .punch{margin-top:5vh;font-size:clamp(24px,2.6vw,42px);line-height:1.5;font-weight:500}
+  .punch em{font-style:normal;color:#6ee7a0}
+
+  /* ---------- 场景 2 申请书 ---------- */
+  .app{display:grid;grid-template-columns:1.2fr .8fr;gap:3.2vw;margin-top:3.4vh;
+       align-items:start}
+  .fields{display:flex;flex-direction:column;gap:2.4vh}
+  .f{border-left:2px solid #232b3a;padding:.5vh 0 .5vh 1.1vw}
+  .f .k{font-size:clamp(11px,.88vw,14px);letter-spacing:.1em;color:#5c6478;margin-bottom:.6vh}
+  .f .v{font-size:clamp(14px,1.16vw,19px);line-height:1.75;color:#c6ccda}
+  /* ★ 经济模型这一格是全场证据最硬的地方：
+     把「新钱付老钱」那一句单独放大，其余降为小字。
+     整段铺上去会变成一大片红，观众反而抓不住重点。 */
+  .scam{border:1px solid #5c2530;background:#1a0d11;border-radius:8px;
+        padding:1.8vh 1.2vw;font-size:clamp(16px,1.5vw,25px);line-height:1.55;
+        color:#ff8f9c;font-weight:500}
+  .kv{margin-top:1.6vh;display:flex;flex-direction:column;gap:.7vh;
+      font-size:clamp(12px,.94vw,15px);line-height:1.6;color:#8d95a8}
+  .kv i{font-style:normal;color:#ff8f9c;margin-right:.6em}
+  .f.hot{border-left-color:#ff5c72;background:linear-gradient(90deg,#ff5c7212,transparent 70%)}
+  .f.hot .v{color:#ffd9de}
+  .f.hot .v mark{background:#ff5c7233;color:#ff8f9c;padding:.1em .18em;border-radius:3px;
+                 font-weight:500;box-shadow:inset 0 -.5em 0 #ff5c7222}
+  .ask{border:1px solid #1e2431;border-radius:12px;background:#0e1118;padding:3vh 1.8vw;
+       display:flex;flex-direction:column;justify-content:center;height:fit-content}
+  .ask .amt{font-size:clamp(34px,4.2vw,68px);font-weight:600;line-height:1;color:#fff}
+  .ask .unit{font-size:clamp(13px,1.1vw,17px);color:#767f94;margin-top:1vh}
+  .ask .who{margin-top:2.6vh;padding-top:2vh;border-top:1px solid #1a2029;
+            font-size:clamp(12px,.95vw,15px);color:#8d95a8;line-height:1.8}
+  .ask .who b{color:#e8ebf2;font-weight:500;display:block;margin-bottom:.4vh}
+
+  /* ---------- 场景 3 四评委 ---------- */
+  /* ★ 卡片高度不撑满：内容自适应，整排再在剩余空间里垂直居中。
+     撑满会让卡片中间拉出一大片空白，内容反而显得更小。 */
+  .judges{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5vw;
+          margin-top:3.4vh;flex:1;align-content:center;align-items:start}
+  .j{border:1px solid #1e2431;border-radius:12px;background:#0e1118;padding:2.4vh 1.4vw;
+     display:flex;flex-direction:column;position:relative;overflow:hidden}
+  .j::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--c)}
+  .j .top{display:flex;align-items:center;gap:.55em;font-size:clamp(13px,1.05vw,17px);
+          color:var(--c);letter-spacing:.04em}
+  .j .top .m{font-size:.85em}
+  .j .sc{font-size:clamp(40px,4.6vw,76px);font-weight:600;line-height:1;margin-top:1.8vh;color:#fff}
+  .j .sc s{font-size:.34em;font-weight:400;color:#5c6478;text-decoration:none;margin-left:.35em}
+  .j .vd{margin-top:1vh;font-size:clamp(12px,.92vw,15px);letter-spacing:.06em;
+         color:var(--c);opacity:.85}
+  /* 发言是这一格的主角，字号往大里给 —— 投影时后排要看得清 */
+  .j .say{margin-top:2.2vh;padding-top:2vh;border-top:1px solid #1a2029;
+          font-size:clamp(14px,1.28vw,22px);line-height:1.8;color:#c6ccda}
+  .j .meta{margin-top:2vh;font-size:clamp(11px,.8vw,13px);
+           color:#4a5162;letter-spacing:.06em}
+  .fan{margin-top:auto;padding-top:2.2vh;border-top:1px solid #1a2029;
+       display:flex;align-items:center;gap:1.2vw;flex-wrap:wrap;
+       font-size:clamp(13px,1.05vw,17px);color:#8d95a8}
+  .fan b{color:#6ee7a0;font-weight:500}
+
+  /* ---------- 场景 4 分歧 ---------- */
+  .split{display:flex;align-items:flex-end;gap:1.4vw;margin-top:4vh;flex-wrap:wrap}
+  .split .big{font-size:clamp(64px,9vw,160px);font-weight:600;line-height:.9;
+              letter-spacing:-.03em;color:#ff8f9c}
+  .split .vs{font-size:clamp(16px,1.6vw,26px);color:#5c6478;
+             padding-bottom:clamp(24px,2.6vw,44px)}
+  .split .min{font-size:clamp(64px,9vw,160px);font-weight:600;line-height:.9;
+              letter-spacing:-.03em;color:#6ee7a0}
+  .split .lbl{font-size:clamp(12px,.95vw,15px);color:#767f94;margin-top:1.2vh}
+  .rule{margin-top:4vh;display:flex;flex-direction:column;gap:1.6vh;max-width:60em}
+  .step{display:flex;gap:1.4vw;align-items:flex-start}
+  .step .i{flex:0 0 auto;width:2.5em;height:2.5em;border-radius:50%;border:1px solid #2a3344;
+           display:flex;align-items:center;justify-content:center;font-size:clamp(11px,.9vw,14px);
+           color:#5c6478}
+  .step .x{font-size:clamp(15px,1.3vw,23px);line-height:1.75;color:#b9c0d0}
+  .step .x b{color:#fff;font-weight:500}
+  .step.stop .i{border-color:#ff5c7255;color:#ff8f9c}
+  .step.stop .x b{color:#ff8f9c}
+
+  /* ---------- 场景 5 改口 ---------- */
+  .flip{display:flex;align-items:center;gap:2.2vw;margin-top:5vh;flex-wrap:wrap}
+  .flip .old{font-size:clamp(52px,7.5vw,132px);font-weight:600;line-height:1;color:#3d4657;
+             position:relative;letter-spacing:-.03em}
+  .flip .old::after{content:"";position:absolute;left:-3%;right:-3%;top:52%;height:3px;
+                    background:#ff5c72;transform:rotate(-8deg);opacity:.75;border-radius:2px}
+  .flip .arr{font-size:clamp(24px,3vw,52px);color:#4a5162;font-weight:300}
+  .flip .new{font-size:clamp(52px,7.5vw,132px);font-weight:600;line-height:1;color:#ff8f9c;
+             letter-spacing:-.03em}
+  .quote{margin-top:4.4vh;border-left:3px solid #c9a0ff;padding:1.4vh 0 1.4vh 1.6vw;max-width:52em}
+  .quote .who{font-size:clamp(11px,.88vw,13px);letter-spacing:.14em;color:#c9a0ff;margin-bottom:1.2vh}
+  .quote .txt{font-size:clamp(18px,1.9vw,30px);line-height:1.6;color:#e8ebf2;font-weight:400}
+  .after{margin-top:4vh;font-size:clamp(13px,1.1vw,17px);line-height:1.8;color:#8d95a8;max-width:52em}
+  .after b{color:#6ee7a0;font-weight:500}
+  .why{margin-top:2.4vh;display:flex;gap:.8vw;flex-wrap:wrap}
+  .tag{font-size:clamp(11px,.85vw,13px);padding:.45em .9em;border-radius:99px;
+       border:1px solid #2a3344;color:#8d95a8}
+
+  /* ---------- 场景 6 定稿对照 ---------- */
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:2.2vw;margin-top:3vh;flex:1;min-height:0}
+  .col{border:1px solid #1e2431;border-radius:12px;padding:2.6vh 1.6vw;background:#0e1118;
+       display:flex;flex-direction:column}
+  .col.no{border-color:#3a1f26;background:#120d10}
+  .col.yes{border-color:#1c3527;background:#0b1410}
+  .col .hd{display:flex;align-items:center;justify-content:space-between;gap:1vw;
+           padding-bottom:1.8vh;border-bottom:1px solid #1a2029}
+  .badge{font-size:clamp(11px,.9vw,14px);letter-spacing:.1em;padding:.42em .9em;border-radius:6px}
+  .badge.no{background:#33161b;color:#ff8f9c;border:1px solid #5c2530}
+  .badge.yes{background:#15321f;color:#6ee7a0;border:1px solid #235c36}
+  .col .fin{font-size:clamp(30px,3.4vw,56px);font-weight:600;line-height:1}
+  .col .nm{margin-top:1.6vh;font-size:clamp(13px,1.05vw,17px);color:#e8ebf2}
+  .col .on{margin-top:.5vh;font-size:clamp(11px,.88vw,13.5px);color:#767f94}
+  .col .body{margin-top:2.4vh;flex:1;min-height:0}
+  .pl{display:flex;flex-direction:column;gap:0}
+  .pl .r{display:flex;justify-content:space-between;gap:1vw;padding:1.1vh 0;
+         border-bottom:1px solid #1a2029;font-size:clamp(12px,.98vw,15.5px);color:#b9c0d0}
+  .pl .r:last-child{border-bottom:none}
+  .pl .r .a{color:#6ee7a0;white-space:nowrap}
+  .pl .r.sum{color:#e8ebf2}
+  .pl .r.sum .a{color:#fff;font-weight:600}
+  .note{margin-top:1.8vh;font-size:clamp(11px,.86vw,13.5px);line-height:1.7;color:#5c6478}
+
+  /* ---------- 场景 7 边界 ---------- */
+  .layer{display:grid;grid-template-columns:1fr auto 1fr;gap:1.6vw;align-items:stretch;
+         margin-top:4vh}
+  .lb{border:1px solid #1e2431;border-radius:12px;padding:3vh 1.7vw;background:#0e1118}
+  .lb.mine{border-color:#2a3f66;background:#0b1020}
+  .lb .who{font-size:clamp(11px,.86vw,13px);letter-spacing:.16em;color:#5c6478;margin-bottom:1.6vh}
+  .lb.mine .who{color:#7fb0ff}
+  .lb .ttl{font-size:clamp(22px,2.1vw,34px);font-weight:600;color:#fff;line-height:1.2}
+  .lb .lst{margin-top:2.4vh;display:flex;flex-direction:column;gap:1.3vh;
+           font-size:clamp(13px,1.08vw,18px);color:#9aa3b6;line-height:1.6}
+  .lb .lst i{font-style:normal;color:#4a5162;margin-right:.5em}
+  /* 中间那条缝：竖排中文在投影上会糊成一团，改成横排小标签 + 交接物 */
+  .seam{display:flex;flex-direction:column;align-items:center;justify-content:center;
+        gap:1.4vh;min-width:10vw}
+  .seam .ln{width:1px;flex:1;min-height:3vh;
+            background:linear-gradient(#1e2431,#5b8cff55,#1e2431)}
+  .seam .lb2{font-size:clamp(11px,.82vw,13px);color:#5b8cff;letter-spacing:.22em;
+             white-space:nowrap}
+  .seam .box{border:1px dashed #34507f;border-radius:8px;padding:1.3vh 1.1vw;text-align:center;
+             background:#0b1020;white-space:nowrap}
+  .seam .box .k{font-size:clamp(10px,.8vw,12px);color:#5b8cff;letter-spacing:.1em}
+  .seam .box .v{font-size:clamp(11px,.88vw,13.5px);color:#c6ccda;margin-top:.5vh;
+                font-family:ui-monospace,Consolas,monospace}
+  .pins{margin-top:3.4vh;display:flex;gap:1vw;flex-wrap:wrap}
+  .pin{font-family:ui-monospace,Consolas,monospace;font-size:clamp(12px,.92vw,15px);
+       padding:.65em 1em;border-radius:8px;border:1px solid #2a3344;color:#8d95a8;background:#0e1118}
+  .pin b{color:#6ee7a0;font-weight:500}
+  .closing{margin-top:3.6vh;font-size:clamp(20px,2vw,32px);line-height:1.6;
+           color:#e8ebf2;font-weight:500;max-width:54em}
+  .closing em{font-style:normal;color:#7fb0ff}
+
+  /* ---------- 底部提示 ---------- */
+  #hint{position:fixed;left:2.2vw;bottom:1.9vh;font-size:11px;color:#3d4657;letter-spacing:.1em;
+        z-index:99;transition:opacity .4s}
+  #hint.hide{opacity:0}
+
+  @media (max-width:900px){
+    .cards,.judges{grid-template-columns:1fr 1fr}
+    .app,.two,.layer{grid-template-columns:1fr}
+  }
+
+  /* ---------- 截图/导出专用 ----------
+     ★ 为什么不用 @media print 做 PDF：
+       这套排版字号全用 vw（跟着窗口宽度变）。打印引擎给的是一个固定宽度的
+       视口，vw 会算错，结果字被挤成一根竖条、一页溢成两页 —— 实测过。
+       所以 PDF 走「逐幕截图再合成」，见 export_pitch.py --pdf。
+       这里的 .flat 就是给截图脚本用的：把 8 幕都摊开、去掉动画初始态。 */
+  body.flat{overflow:visible}
+  body.flat .scene{position:relative;inset:auto;display:flex;
+                  height:100vh;page-break-after:always}
+  body.flat .an,body.flat .af{opacity:1;animation:none;transform:none}
+  body.flat #bar,body.flat #hint,body.flat #pg{display:none}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<div id="hint">空格 / → 继续</div>
+<div id="pg"></div>
+
+<!-- ============ 0 封面 ============ -->
+<section class="scene cover">
+  <div class="kicker an">Monad Blitz · 广州 · 2026</div>
+  <h1 class="h1 an d1">让 4 个 Agent<br><span>替你先吵一遍</span></h1>
+  <p class="lead an d2">AI 投委会是一套自主的生态资助决策系统。<br>
+     4 个不同视角的评审 Agent 并行开庭，就同一份申请书辩论，达成结论，<br>
+     然后把一个可被合约执行的拨款计划交出去。</p>
+  <div class="foot af d3">
+    <span><b>并行评审</b> · 4 个节点同时跑</span>
+    <span><b>多轮辩论</b> · 分歧不消解就重开</span>
+    <span><b>可追溯</b> · 每条结论挂着证据编号</span>
+    <span><b>不碰私钥</b> · 只产出建议，不签名</span>
+  </div>
+</section>
+
+<!-- ============ 1 问题 ============ -->
+<section class="scene">
+  <div class="kicker an">问题</div>
+  <h2 class="h2 an d1">一次生态资助，卡在三个地方</h2>
+  <div class="cards">
+    <div class="card an d1">
+      <div class="n num">2-6 周</div>
+      <div class="t">评审周期</div>
+      <div class="d">申请要排期、等评委有空、凑齐一次会。钱在账上躺着等。</div>
+    </div>
+    <div class="card an d2">
+      <div class="n num">4</div>
+      <div class="t">视角彼此看不见</div>
+      <div class="d">产品、技术、代币、合规各看一遍，相互之间没有对话。有人看出问题，别人不知道。</div>
+    </div>
+    <div class="card an d3">
+      <div class="n num">0</div>
+      <div class="t">可复核的推导</div>
+      <div class="d">最后只有一句「通过了」。为什么通过、哪句话支撑了结论，没有留痕。</div>
+    </div>
+  </div>
+  <p class="punch an d4">我们要做的不是把评审加速。是让它<em>可以被检查</em>。</p>
+</section>
+
+<!-- ============ 2 申请书 ============ -->
+<section class="scene">
+  <div class="kicker an">第一份申请书</div>
+  <h2 class="h2 an d1">先不看 AI。你自己当一次评委。</h2>
+  <div class="app">
+    <div class="fields">
+      <div class="f an d1">
+        <div class="k">一句话</div>
+        <div class="v">聚合 Monad 生态各类收益策略，用户质押 NOVA 代币即可获得稳定年化 38%。</div>
+      </div>
+      <div class="f an d1">
+        <div class="k">已有进展</div>
+        <div class="v" id="f-traction"></div>
+      </div>
+      <div class="f hot an d2" style="border-left-color:#ff5c72">
+        <div class="k">经济模型 · 申请方自述原文</div>
+        <div class="scam" id="f-scam"></div>
+        <div class="kv" id="f-kv"></div>
+      </div>
+      <div class="f an d2">
+        <div class="k">预算</div>
+        <div class="v" id="f-budget"></div>
+      </div>
+    </div>
+    <div class="ask an d2">
+      <div class="amt num" id="f-amt"></div>
+      <div class="unit">USDC · 请求资助</div>
+      <div class="who">
+        <b id="f-name"></b>
+        <span class="mono dim" id="f-applicant"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3 四评委 ============ -->
+<section class="scene">
+  <div class="kicker an">开庭</div>
+  <h2 class="h2 an d1">四个视角，同一帧。</h2>
+  <div class="judges" id="judges"></div>
+  <div class="fan an">
+    <span id="fan-a"></span>
+    <span style="flex:1"></span>
+    <span id="fan-b"></span>
+  </div>
+</section>
+
+<!-- ============ 4 分歧 ============ -->
+<section class="scene">
+  <div class="kicker an">分歧</div>
+  <h2 class="h2 an d1">分差 7 分。系统没有取平均。</h2>
+  <div class="split">
+    <div class="an d1">
+      <div class="big num" id="s-max"></div>
+      <div class="lbl">最高分 · 合规与财务</div>
+    </div>
+    <div class="vs an d1">vs</div>
+    <div class="an d1">
+      <div class="min num" id="s-min"></div>
+      <div class="lbl">最低分 · 代币经济学</div>
+    </div>
+  </div>
+  <div class="rule">
+    <div class="step an d2">
+      <div class="i num">1</div>
+      <div class="x">四条发言落进 State。均分 <b class="num" id="s-avg"></b>，分差 <b class="num" id="s-gap"></b>。</div>
+    </div>
+    <div class="step an d2">
+      <div class="i num">2</div>
+      <div class="x">有一个评委给了否决意见。按规则，<b>有否决时不判收敛</b> —— 哪怕均分已经过线。</div>
+    </div>
+    <div class="step stop an d3">
+      <div class="i">✕</div>
+      <div class="x"><b>不通过。回边重开一轮。</b>把「有人强烈反对」这件事，交回给辩论本身去处理。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5 改口 ============ -->
+<section class="scene">
+  <div class="kicker an">第二轮</div>
+  <h2 class="h2 an d1">然后有人改了主意。</h2>
+  <div class="flip">
+    <div class="old num an d1">8</div>
+    <div class="arr an d1">→</div>
+    <div class="new num an d2">2</div>
+  </div>
+  <div class="quote an d3">
+    <div class="who">合规与财务 · 复述上一轮的反对意见之后</div>
+    <div class="txt" id="q-flip"></div>
+  </div>
+  <p class="after an d4">这不是我们写死的分支。是<b>第二轮拿到了第一轮的否决理由</b>，
+    在新上下文里重新判断，自己把分数降了下去。</p>
+  <div class="why an d4">
+    <div class="tag">上一轮 8 分</div>
+    <div class="tag">按复议规则调整</div>
+    <div class="tag">参考风险角色：token</div>
+    <div class="tag">本轮 2 分</div>
+  </div>
+</section>
+
+<!-- ============ 6 定稿 ============ -->
+<section class="scene">
+  <div class="kicker an">定稿</div>
+  <h2 class="h2 an d1">同一套代码，两个走向。</h2>
+  <div class="two">
+    <div class="col no an d1">
+      <div class="hd">
+        <span class="nm" id="c-b-name"></span>
+        <span class="badge no">驳回</span>
+      </div>
+      <div class="fin num" style="margin-top:2.2vh;color:#ff8f9c" id="c-b-score"></div>
+      <div class="on" id="c-b-on"></div>
+      <div class="body">
+        <div class="note" style="margin-top:2.4vh">被一票否决。不进放款流程。</div>
+        <div class="note" style="margin-top:1.6vh;color:#8d95a8">
+          <span class="mono">release_plan = []</span><br>
+          没有计划可执行，合约那边什么都收不到。
+        </div>
+      </div>
+    </div>
+    <div class="col yes an d2">
+      <div class="hd">
+        <span class="nm" id="c-a-name"></span>
+        <span class="badge yes">通过</span>
+      </div>
+      <div class="fin num" style="margin-top:2.2vh;color:#6ee7a0" id="c-a-score"></div>
+      <div class="on" id="c-a-on"></div>
+      <div class="body">
+        <div style="margin-top:2.4vh">
+          <div class="sm" style="margin-bottom:1vh">生成的分期放款计划</div>
+          <div class="pl" id="c-a-plan"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7 边界 ============ -->
+<section class="scene">
+  <div class="kicker an">边界</div>
+  <h2 class="h2 an d1">它不签字。它让签字之前那 40 秒有据可查。</h2>
+  <div class="layer">
+    <div class="lb mine an d1">
+      <div class="who">决策层 · 我们</div>
+      <div class="ttl">Python + LangGraph</div>
+      <div class="lst">
+        <span><i>—</i>并行扇出 4 个评审节点</span>
+        <span><i>—</i>State 累加，四条发言互不覆盖</span>
+        <span><i>—</i>条件回边，分歧未消就重开</span>
+        <span><i>—</i>产出 review JSON</span>
+      </div>
+    </div>
+    <div class="seam an d1">
+      <div class="ln"></div>
+      <div class="lb2">唯一交接物</div>
+      <div class="box">
+        <div class="k">release_plan</div>
+        <div class="v" id="seam-v"></div>
+      </div>
+      <div class="ln"></div>
+    </div>
+    <div class="lb an d2">
+      <div class="who">执行层 · 合约</div>
+      <div class="ttl">Solidity</div>
+      <div class="lst">
+        <span><i>—</i>托管资金</span>
+        <span><i>—</i>按里程碑分期放款</span>
+        <span><i>—</i>校验白名单与权限</span>
+        <span><i>—</i>发事件上链</span>
+      </div>
+    </div>
+  </div>
+  <div class="pins an d3">
+    <span class="pin">advisory_only: <b>true</b></span>
+    <span class="pin">chain_status: <b>not_submitted</b></span>
+    <span class="pin">executable: <b>false</b></span>
+    <span class="pin">私钥 / 签名 / 广播：<b>不涉及</b></span>
+  </div>
+  <p class="closing an d4">4 个 Agent 吵完，你拿到的不是一个分数，
+    是<em>一条能追溯的论证链</em>。</p>
+</section>
+
+<script>
+const DATA = {"A": {"application": {"id": "A", "name": "MonadPay — 电商免密结算 SDK", "applicant": "0x8fA3...c21B", "request_usdc": 50000, "one_liner": "为东南亚中小电商提供基于 Monad 的免密小额结算 SDK，替代信用卡拒付。", "problem": "东南亚中小电商信用卡拒付率高达 2.3%，单笔手续费 2.9%+0.3 美元，10 美元以下订单几乎无利可图。现有稳定币方案需要用户理解钱包和 gas，转化率损失 60%。", "solution": "提供一个 JS SDK，商户接入后用户无需持币、无需装钱包，后台用代付方式完成结算。单笔成本可降至 0.01 美元以下。", "tech": "TypeScript SDK + 后端 relayer 服务。relayer 用批量提交把多笔结算打包，依赖 Monad 的 300ms 出块和低费用。已完成 POC，日处理 3 万笔压测通过。", "traction": "已接入 12 家商户，月流水 42 万美元，留存率 78%。", "token": "不发代币。收入来自结算手续费分成，抽成 0.05%。", "budget": [{"milestone": "M1 完成 relayer 多签与压测", "usdc": 20000}, {"milestone": "M2 接入 100 家商户", "usdc": 20000}, {"milestone": "M3 开源 SDK 与审计", "usdc": 10000}], "risk_note": "监管：涉及资金归集，需确认当地牌照要求。"}, "max_rounds": 2, "pass_threshold": 6.0, "speeches": [{"role": "compliance", "round": 1, "score": 8, "verdict": "approve", "content": "[申请者自述·未独立核验] [{\"milestone\": \"M1 完成 relayer 多签与压测\", \"usdc\": 20000}, {\"milestone\": \"M2 接入 100 家商户\", \"usdc\": 20000}, {\"milestone\": \"M3 开源 SDK 与审计\", \"usdc\": 10000}]\n[评审推断·非已核实事实] [离线规则评审] 预算拆为 3 个里程碑，可分期监督；预算合计与申请金额一致（50000 USDC）；主动披露风险：监管：涉及资金归集，需确认当地牌照要求。本轮 8 分，结论 approve。申请方自述尚未独立核验。", "evidence": ["[申请者自述·未独立核验] A6: 预算", "[评审推断·非已核实事实] A6: 预算"], "source_mode": "rules", "fallback_reason": "offline_requested", "retrieved_sources": [], "model_narrative": "[离线规则评审] 预算拆为 3 个里程碑，可分期监督；预算合计与申请金额一致（50000 USDC）；主动披露风险：监管：涉及资金归集，需确认当地牌照要求。本轮 8 分，结论 approve。申请方自述尚未独立核验。", "claims": [{"claim": "[{\"milestone\": \"M1 完成 relayer 多签与压测\", \"usdc\": 20000}, {\"milestone\": \"M2 接入 100 家商户\", \"usdc\": 20000}, {\"milestone\": \"M3 开源 SDK 与审计\", \"usdc\": 10000}]", "evidence_ids": ["A6"], "verification_status": "applicant_claim", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}, {"claim": "[离线规则评审] 预算拆为 3 个里程碑，可分期监督；预算合计与申请金额一致（50000 USDC）；主动披露风险：监管：涉及资金归集，需确认当地牌照要求。本轮 8 分，结论 approve。申请方自述尚未独立核验。", "evidence_ids": ["A6"], "verification_status": "inference", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}], "evidence_registry": {"A1": {"id": "A1", "source_type": "applicant_claim", "field": "problem", "label": "痛点", "text": "东南亚中小电商信用卡拒付率高达 2.3%，单笔手续费 2.9%+0.3 美元，10 美元以下订单几乎无利可图。现有稳定币方案需要用户理解钱包和 gas，转化率损失 60%。", "verified": false}, "A2": {"id": "A2", "source_type": "applicant_claim", "field": "solution", "label": "方案", "text": "提供一个 JS SDK，商户接入后用户无需持币、无需装钱包，后台用代付方式完成结算。单笔成本可降至 0.01 美元以下。", "verified": false}, "A3": {"id": "A3", "source_type": "applicant_claim", "field": "tech", "label": "技术方案", "text": "TypeScript SDK + 后端 relayer 服务。relayer 用批量提交把多笔结算打包，依赖 Monad 的 300ms 出块和低费用。已完成 POC，日处理 3 万笔压测通过。", "verified": false}, "A4": {"id": "A4", "source_type": "applicant_claim", "field": "traction", "label": "已有进展", "text": "已接入 12 家商户，月流水 42 万美元，留存率 78%。", "verified": false}, "A5": {"id": "A5", "source_type": "applicant_claim", "field": "token", "label": "经济模型", "text": "不发代币。收入来自结算手续费分成，抽成 0.05%。", "verified": false}, "A6": {"id": "A6", "source_type": "applicant_claim", "field": "budget", "label": "预算", "text": "[{\"milestone\": \"M1 完成 relayer 多签与压测\", \"usdc\": 20000}, {\"milestone\": \"M2 接入 100 家商户\", \"usdc\": 20000}, {\"milestone\": \"M3 开源 SDK 与审计\", \"usdc\": 10000}]", "verified": false}, "A7": {"id": "A7", "source_type": "applicant_claim", "field": "risk_note", "label": "风险自述", "text": "监管：涉及资金归集，需确认当地牌照要求。", "verified": false}}, "evidence_contract_version": "1.0", "semantic_support": "not_verified"}, {"role": "pm", "round": 1, "score": 10, "verdict": "approve", "content": "[申请者自述·未独立核验] 已接入 12 家商户，月流水 42 万美元，留存率 78%。\n[评审推断·非已核实事实] [离线规则评审] 痛点有量化支撑（提到 5 处具体数值）；申请自述进展：已接入 12 家商户，月流水 42 万美元，留存率 78%；有清晰的收入来源。本轮 10 分，结论 approve。申请方自述尚未独立核验。", "evidence": ["[申请者自述·未独立核验] A4: 已有进展", "[评审推断·非已核实事实] A4: 已有进展"], "source_mode": "rules", "fallback_reason": "offline_requested", "retrieved_sources": [], "model_narrative": "[离线规则评审] 痛点有量化支撑（提到 5 处具体数值）；申请自述进展：已接入 12 家商户，月流水 42 万美元，留存率 78%；有清晰的收入来源。本轮 10 分，结论 approve。申请方自述尚未独立核验。", "claims": [{"claim": "已接入 12 家商户，月流水 42 万美元，留存率 78%。", "evidence_ids": ["A4"], "verification_status": "applicant_claim", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}, {"claim": "[离线规则评审] 痛点有量化支撑（提到 5 处具体数值）；申请自述进展：已接入 12 家商户，月流水 42 万美元，留存率 78%；有清晰的收入来源。本轮 10 分，结论 approve。申请方自述尚未独立核验。", "evidence_ids": ["A4"], "verification_status": "inference", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}], "evidence_registry": {"A1": {"id": "A1", "source_type": "applicant_claim", "field": "problem", "label": "痛点", "text": "东南亚中小电商信用卡拒付率高达 2.3%，单笔手续费 2.9%+0.3 美元，10 美元以下订单几乎无利可图。现有稳定币方案需要用户理解钱包和 gas，转化率损失 60%。", "verified": false}, "A2": {"id": "A2", "source_type": "applicant_claim", "field": "solution", "label": "方案", "text": "提供一个 JS SDK，商户接入后用户无需持币、无需装钱包，后台用代付方式完成结算。单笔成本可降至 0.01 美元以下。", "verified": false}, "A3": {"id": "A3", "source_type": "applicant_claim", "field": "tech", "label": "技术方案", "text": "TypeScript SDK + 后端 relayer 服务。relayer 用批量提交把多笔结算打包，依赖 Monad 的 300ms 出块和低费用。已完成 POC，日处理 3 万笔压测通过。", "verified": false}, "A4": {"id": "A4", "source_type": "applicant_claim", "field": "traction", "label": "已有进展", "text": "已接入 12 家商户，月流水 42 万美元，留存率 78%。", "verified": false}, "A5": {"id": "A5", "source_type": "applicant_claim", "field": "token", "label": "经济模型", "text": "不发代币。收入来自结算手续费分成，抽成 0.05%。", "verified": false}, "A6": {"id": "A6", "source_type": "applicant_claim", "field": "budget", "label": "预算", "text": "[{\"milestone\": \"M1 完成 relayer 多签与压测\", \"usdc\": 20000}, {\"milestone\": \"M2 接入 100 家商户\", \"usdc\": 20000}, {\"milestone\": \"M3 开源 SDK 与审计\", \"usdc\": 10000}]", "verified": false}, "A7": {"id": "A7", "source_type": "applicant_claim", "field": "risk_note", "label": "风险自述", "text": "监管：涉及资金归集，需确认当地牌照要求。", "verified": false}}, "evidence_contract_version": "1.0", "semantic_support": "not_verified"}, {"role": "tech", "round": 1, "score": 10, "verdict": "approve", "content": "[申请者自述·未独立核验] TypeScript SDK + 后端 relayer 服务。relayer 用批量提交把多笔结算打包，依赖 Monad 的 300ms 出块和低费用。已完成 POC，日处理 3 万笔压测通过。\n[评审推断·非已核实事实] [离线规则评审] 有批量提交设计，符合高吞吐链的最佳实践；技术栈明确：TypeScript SDK + 后端 relayer 服务。relayer 用批量提交把多笔结算打包，依赖 Monad 的 300ms 出块和低费用。已完成 POC，日处理 3 万笔压测通过；申请声称已有 POC 或原型；尚未独立核验。本轮 10 分，结论 approve。申请方自述尚未独立核验。\n[文档内容·不证明项目事实] 检索原文片段：\u003e Technical overview of Monad for developers: transactions, smart contracts, consensus, parallel execution, MonadDb, and the differences from Ethereum.\n\n\u003e [!NOTE]\n\u003e\n\u003e This page summarizes \"Why Monad\" for developers. For a summary of what you need to know in order\n\u003e to develop or redeploy on Monad, see\n\u003e [Deployment Summary for Developers](https://docs.monad.xyz/developer-essentials/summary.md).\n\nMonad is an Ethereum-compatible Layer-1 blockchain with 10,000 tps of throughput, 300ms block frequency, and 600ms finality.\n\nMonad's implementation of the Ethereum Virtual Machine complies with the Fusaka fork.\n\nThe Monad client has been simulated with historical Ethereum transactions and produces\nidentical merkle roots.\n\nMonad also offers full Ethereum RPC compatibility so that users can interact with Monad using\nfamiliar tools like Etherscan or MetaMask.\n\nMonad accomplishes these performance i", "evidence": ["[申请者自述·未独立核验] A3: 技术方案", "[评审推断·非已核实事实] A3: 技术方案", "[文档内容·不证明项目事实] D1: knowledge/official/developer-overview.md"], "source_mode": "rules", "fallback_reason": "offline_requested", "retrieved_sources": [{"source": "knowledge/official/developer-overview.md", "section": "Monad for Developers: Transactions, Consensus, Parallel Execution, and MonadDb", "text": "\u003e Technical overview of Monad for developers: transactions, smart contracts, consensus, parallel execution, MonadDb, and the differences from Ethereum.\n\n\u003e [!NOTE]\n\u003e\n\u003e This page summarizes \"Why Monad\" for developers. For a summary of what you need to know in order\n\u003e to develop or redeploy on Monad, see\n\u003e [Deployment Summary for Developers](https://docs.monad.xyz/developer-essentials/summary.md).\n\nMonad is an Ethereum-compatible Layer-1 blockchain with 10,000 tps of throughput, 300ms block frequency, and 600ms finality.\n\nMonad's implementation of the Ethereum Virtual Machine complies with the Fusaka fork.\n\nThe Monad client has been simulated with historical Ethereum transactions and produces\nidentical merkle roots.\n\nMonad also offers full Ethereum RPC compatibility so that users can interact with Monad using\nfamiliar tools like Etherscan or MetaMask.\n\nMonad accomplishes these performance improvements, while preserving backward compatibility, through\nthe introduction of several major innovations:\n\n* [MonadBFT](https://docs.monad.xyz/monad-arch/consensus/monad-bft.md), a frontier BFT consensus mechanism solving the\n  [tail-forking](https://www.category.xyz/blogs/monadbft-fast-responsive-fork-resistant-streamlined-consensus) problem\n* [RaptorCast](https://docs.monad.xyz/monad-arch/consensus/raptorcast.md) for efficient block transmission\n* [Asynchronous Execution](https://docs.mona", "source_type": "official_monad", "url": "https://docs.monad.xyz/introduction/monad-for-developers.md", "sha256": "d11b36deda7cd63ced09062760e098315130476d415e5a35759b7f84946c756f", "excerpt_offset": 0, "score": 6}, {"source": "knowledge/architecture-review.md", "section": "原型与压测", "text": "申请声称完成 POC、原型、压测、批量提交或 batch 时，应要求测试脚本、运行环境、负载和结果。申请描述不是已核实的性能证据，不能据此保证吞吐或延迟。", "source_type": "project_policy", "url": null, "sha256": null, "excerpt_offset": 0, "score": 9}, {"source": "knowledge/official/ethereum-differences.md", "section": "Transactions", "text": "1. Transactions are charged based on gas limit rather than gas usage, i.e. total gas deducted\n   from the sender's balance is `value + gas_bid * gas_limit`. As discussed in\n   [Gas in Monad](https://docs.monad.xyz/developer-essentials/gas-pricing.md), this is a DoS-prevention measure for\n   asynchronous execution.\n\n2. Consensus and execution utilize the [Reserve Balance](https://docs.monad.xyz/developer-essentials/reserve-balance.md) mechanism to ensure\n   that all transactions included in consensus can be paid for. This mechanism places light\n   restrictions on transaction inclusion at consensus time, and defines select conditions under\n   which a transaction will revert at execution time.\n\n3. Due to the Reserve Balance mechanism, you may see transactions in the blockchain which\n   ultimately fail due to trying to spend too much MON relative to account balance.\n   These transactions still pay for gas and are valid transactions whose result is execution\n   reversion. This isn't a protocol difference, as many reverting Ethereum transactions are\n   included in the chain, but it may be different from expectation.\n   [Longer discussion](https://docs.monad.xyz/developer-essentials/reserve-balance.md#transactions-that-are-included-but-revert).\n\n4. Transaction type 3 (EIP-4844 aka blob transactions) is not supported.\n\n5. There is no global mempool. For efficiency, transactions are fo", "source_type": "official_monad", "url": "https://docs.monad.xyz/developer-essentials/differences.md", "sha256": "032634f1ce097d7673977ab95981002652cd8451496630589b9d140ec83675c1", "excerpt_offset": 0, "score": 6}], "model_narrative": "[离线规则评审] 有批量提交设计，符合高吞吐链的最佳实践；技术栈明确：TypeScript SDK + 后端 relayer 服务。relayer 用批量提交把多笔结算打包，依赖 Monad 的 300ms 出块和低费用。已完成 POC，日处理 3 万笔压测通过；申请声称已有 POC 或原型；尚未独立核验。本轮 10 分，结论 approve。申请方自述尚未独立核验。", "claims": [{"claim": "TypeScript SDK + 后端 relayer 服务。relayer 用批量提交把多笔结算打包，依赖 Monad 的 300ms 出块和低费用。已完成 POC，日处理 3 万笔压测通过。", "evidence_ids": ["A3"], "verification_status": "applicant_claim", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}, {"claim": "[离线规则评审] 有批量提交设计，符合高吞吐链的最佳实践；技术栈明确：TypeScript SDK + 后端 relayer 服务。relayer 用批量提交把多笔结算打包，依赖 Monad 的 300ms 出块和低费用。已完成 POC，日处理 3 万笔压测通过；申请声称已有 POC 或原型；尚未独立核验。本轮 10 分，结论 approve。申请方自述尚未独立核验。", "evidence_ids": ["A3"], "verification_status": "inference", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}, {"claim": "检索原文片段：\u003e Technical overview of Monad for developers: transactions, smart contracts, consensus, parallel execution, MonadDb, and the differences from Ethereum.\n\n\u003e [!NOTE]\n\u003e\n\u003e This page summarizes \"Why Monad\" for developers. For a summary of what you need to know in order\n\u003e to develop or redeploy on Monad, see\n\u003e [Deployment Summary for Developers](https://docs.monad.xyz/developer-essentials/summary.md).\n\nMonad is an Ethereum-compatible Layer-1 blockchain with 10,000 tps of throughput, 300ms block frequency, and 600ms finality.\n\nMonad's implementation of the Ethereum Virtual Machine complies with the Fusaka fork.\n\nThe Monad client has been simulated with historical Ethereum transactions and produces\nidentical merkle roots.\n\nMonad also offers full Ethereum RPC compatibility so that users can interact with Monad using\nfamiliar tools like Etherscan or MetaMask.\n\nMonad accomplishes these performance i", "evidence_ids": ["D1"], "verification_status": "documented_reference", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}], "evidence_registry": {"A1": {"id": "A1", "source_type": "applicant_claim", "field": "problem", "label": "痛点", "text": "东南亚中小电商信用卡拒付率高达 2.3%，单笔手续费 2.9%+0.3 美元，10 美元以下订单几乎无利可图。现有稳定币方案需要用户理解钱包和 gas，转化率损失 60%。", "verified": false}, "A2": {"id": "A2", "source_type": "applicant_claim", "field": "solution", "label": "方案", "text": "提供一个 JS SDK，商户接入后用户无需持币、无需装钱包，后台用代付方式完成结算。单笔成本可降至 0.01 美元以下。", "verified": false}, "A3": {"id": "A3", "source_type": "applicant_claim", "field": "tech", "label": "技术方案", "text": "TypeScript SDK + 后端 relayer 服务。relayer 用批量提交把多笔结算打包，依赖 Monad 的 300ms 出块和低费用。已完成 POC，日处理 3 万笔压测通过。", "verified": false}, "A4": {"id": "A4", "source_type": "applicant_claim", "field": "traction", "label": "已有进展", "text": "已接入 12 家商户，月流水 42 万美元，留存率 78%。", "verified": false}, "A5": {"id": "A5", "source_type": "applicant_claim", "field": "token", "label": "经济模型", "text": "不发代币。收入来自结算手续费分成，抽成 0.05%。", "verified": false}, "A6": {"id": "A6", "source_type": "applicant_claim", "field": "budget", "label": "预算", "text": "[{\"milestone\": \"M1 完成 relayer 多签与压测\", \"usdc\": 20000}, {\"milestone\": \"M2 接入 100 家商户\", \"usdc\": 20000}, {\"milestone\": \"M3 开源 SDK 与审计\", \"usdc\": 10000}]", "verified": false}, "A7": {"id": "A7", "source_type": "applicant_claim", "field": "risk_note", "label": "风险自述", "text": "监管：涉及资金归集，需确认当地牌照要求。", "verified": false}, "D1": {"id": "D1", "source_type": "official_monad", "label": "Monad for Developers: Transactions, Consensus, Parallel Execution, and MonadDb", "text": "\u003e Technical overview of Monad for developers: transactions, smart contracts, consensus, parallel execution, MonadDb, and the differences from Ethereum.\n\n\u003e [!NOTE]\n\u003e\n\u003e This page summarizes \"Why Monad\" for developers. For a summary of what you need to know in order\n\u003e to develop or redeploy on Monad, see\n\u003e [Deployment Summary for Developers](https://docs.monad.xyz/developer-essentials/summary.md).\n\nMonad is an Ethereum-compatible Layer-1 blockchain with 10,000 tps of throughput, 300ms block frequency, and 600ms finality.\n\nMonad's implementation of the Ethereum Virtual Machine complies with the Fusaka fork.\n\nThe Monad client has been simulated with historical Ethereum transactions and produces\nidentical merkle roots.\n\nMonad also offers full Ethereum RPC compatibility so that users can interact with Monad using\nfamiliar tools like Etherscan or MetaMask.\n\nMonad accomplishes these performance improvements, while preserving backward compatibility, through\nthe introduction of several major innovations:\n\n* [MonadBFT](https://docs.monad.xyz/monad-arch/consensus/monad-bft.md), a frontier BFT consensus mechanism solving the\n  [tail-forking](https://www.category.xyz/blogs/monadbft-fast-responsive-fork-resistant-streamlined-consensus) problem\n* [RaptorCast](https://docs.monad.xyz/monad-arch/consensus/raptorcast.md) for efficient block transmission\n* [Asynchronous Execution](https://docs.mona", "source": "knowledge/official/developer-overview.md", "url": "https://docs.monad.xyz/introduction/monad-for-developers.md", "sha256": "d11b36deda7cd63ced09062760e098315130476d415e5a35759b7f84946c756f", "verified": false}, "D2": {"id": "D2", "source_type": "project_policy", "label": "原型与压测", "text": "申请声称完成 POC、原型、压测、批量提交或 batch 时，应要求测试脚本、运行环境、负载和结果。申请描述不是已核实的性能证据，不能据此保证吞吐或延迟。", "source": "knowledge/architecture-review.md", "url": null, "sha256": null, "verified": false}, "D3": {"id": "D3", "source_type": "official_monad", "label": "Transactions", "text": "1. Transactions are charged based on gas limit rather than gas usage, i.e. total gas deducted\n   from the sender's balance is `value + gas_bid * gas_limit`. As discussed in\n   [Gas in Monad](https://docs.monad.xyz/developer-essentials/gas-pricing.md), this is a DoS-prevention measure for\n   asynchronous execution.\n\n2. Consensus and execution utilize the [Reserve Balance](https://docs.monad.xyz/developer-essentials/reserve-balance.md) mechanism to ensure\n   that all transactions included in consensus can be paid for. This mechanism places light\n   restrictions on transaction inclusion at consensus time, and defines select conditions under\n   which a transaction will revert at execution time.\n\n3. Due to the Reserve Balance mechanism, you may see transactions in the blockchain which\n   ultimately fail due to trying to spend too much MON relative to account balance.\n   These transactions still pay for gas and are valid transactions whose result is execution\n   reversion. This isn't a protocol difference, as many reverting Ethereum transactions are\n   included in the chain, but it may be different from expectation.\n   [Longer discussion](https://docs.monad.xyz/developer-essentials/reserve-balance.md#transactions-that-are-included-but-revert).\n\n4. Transaction type 3 (EIP-4844 aka blob transactions) is not supported.\n\n5. There is no global mempool. For efficiency, transactions are fo", "source": "knowledge/official/ethereum-differences.md", "url": "https://docs.monad.xyz/developer-essentials/differences.md", "sha256": "032634f1ce097d7673977ab95981002652cd8451496630589b9d140ec83675c1", "verified": false}}, "evidence_contract_version": "1.0", "semantic_support": "not_verified"}, {"role": "token", "round": 1, "score": 9, "verdict": "approve", "content": "[申请者自述·未独立核验] 不发代币。收入来自结算手续费分成，抽成 0.05%。\n[评审推断·非已核实事实] [离线规则评审] 申请声明不发代币；其他业务和资金风险仍需核验。本轮 9 分，结论 approve。申请方自述尚未独立核验。", "evidence": ["[申请者自述·未独立核验] A5: 经济模型", "[评审推断·非已核实事实] A5: 经济模型"], "source_mode": "rules", "fallback_reason": "offline_requested", "retrieved_sources": [], "model_narrative": "[离线规则评审] 申请声明不发代币；其他业务和资金风险仍需核验。本轮 9 分，结论 approve。申请方自述尚未独立核验。", "claims": [{"claim": "不发代币。收入来自结算手续费分成，抽成 0.05%。", "evidence_ids": ["A5"], "verification_status": "applicant_claim", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}, {"claim": "[离线规则评审] 申请声明不发代币；其他业务和资金风险仍需核验。本轮 9 分，结论 approve。申请方自述尚未独立核验。", "evidence_ids": ["A5"], "verification_status": "inference", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}], "evidence_registry": {"A1": {"id": "A1", "source_type": "applicant_claim", "field": "problem", "label": "痛点", "text": "东南亚中小电商信用卡拒付率高达 2.3%，单笔手续费 2.9%+0.3 美元，10 美元以下订单几乎无利可图。现有稳定币方案需要用户理解钱包和 gas，转化率损失 60%。", "verified": false}, "A2": {"id": "A2", "source_type": "applicant_claim", "field": "solution", "label": "方案", "text": "提供一个 JS SDK，商户接入后用户无需持币、无需装钱包，后台用代付方式完成结算。单笔成本可降至 0.01 美元以下。", "verified": false}, "A3": {"id": "A3", "source_type": "applicant_claim", "field": "tech", "label": "技术方案", "text": "TypeScript SDK + 后端 relayer 服务。relayer 用批量提交把多笔结算打包，依赖 Monad 的 300ms 出块和低费用。已完成 POC，日处理 3 万笔压测通过。", "verified": false}, "A4": {"id": "A4", "source_type": "applicant_claim", "field": "traction", "label": "已有进展", "text": "已接入 12 家商户，月流水 42 万美元，留存率 78%。", "verified": false}, "A5": {"id": "A5", "source_type": "applicant_claim", "field": "token", "label": "经济模型", "text": "不发代币。收入来自结算手续费分成，抽成 0.05%。", "verified": false}, "A6": {"id": "A6", "source_type": "applicant_claim", "field": "budget", "label": "预算", "text": "[{\"milestone\": \"M1 完成 relayer 多签与压测\", \"usdc\": 20000}, {\"milestone\": \"M2 接入 100 家商户\", \"usdc\": 20000}, {\"milestone\": \"M3 开源 SDK 与审计\", \"usdc\": 10000}]", "verified": false}, "A7": {"id": "A7", "source_type": "applicant_claim", "field": "risk_note", "label": "风险自述", "text": "监管：涉及资金归集，需确认当地牌照要求。", "verified": false}}, "evidence_contract_version": "1.0", "semantic_support": "not_verified"}], "current_round": 1, "consensus": true, "final_verdict": "approve", "final_score": 9.2, "release_plan": [{"milestone": "M1 完成 relayer 多签与压测", "usdc": 20000, "stage": 1, "status": "proposed"}, {"milestone": "M2 接入 100 家商户", "usdc": 20000, "stage": 2, "status": "proposed"}, {"milestone": "M3 开源 SDK 与审计", "usdc": 10000, "stage": 3, "status": "proposed"}], "payouts": [], "trace": ["R1 compliance 发言：8分 approve", "R1 pm 发言：10分 approve", "R1 tech 发言：10分 approve", "R1 token 发言：9分 approve", "R1 汇总：均分 9.2，分差 2，已收敛", "定稿：approve（平均分 9.2 达到阈值 6.0）"], "execution_mode": "rules", "decision_policy": "legacy_score_veto_v1", "chain_status": "not_submitted", "executable": false}, "B": {"application": {"id": "B", "name": "YieldNova — Monad 生态聚合收益协议", "applicant": "0x1c47...9aE0", "request_usdc": 80000, "one_liner": "聚合 Monad 生态各类收益策略，用户质押 NOVA 代币即可获得稳定年化 38%。", "problem": "Monad 生态 DeFi 协议分散，普通用户难以在十几个协议间做收益优化，资金利用率低。", "solution": "自动把用户资金分配到收益最高的协议，动态再平衡。用户只需质押 NOVA 即可躺赚。", "tech": "Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。", "traction": "内测 3 周，TVL 120 万美元，参与地址 2400 个。", "token": "发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。", "budget": [{"milestone": "M1 完成策略合约审计", "usdc": 30000}, {"milestone": "M2 TVL 达到 1000 万美元", "usdc": 30000}, {"milestone": "M3 上线移动端", "usdc": 20000}], "risk_note": "年化收益率随 TVL 增长可能下降。"}, "max_rounds": 2, "pass_threshold": 6.0, "speeches": [{"role": "compliance", "round": 1, "score": 8, "verdict": "approve", "content": "[申请者自述·未独立核验] [{\"milestone\": \"M1 完成策略合约审计\", \"usdc\": 30000}, {\"milestone\": \"M2 TVL 达到 1000 万美元\", \"usdc\": 30000}, {\"milestone\": \"M3 上线移动端\", \"usdc\": 20000}]\n[评审推断·非已核实事实] [离线规则评审] 预算拆为 3 个里程碑，可分期监督；预算合计与申请金额一致（80000 USDC）；主动披露风险：年化收益率随 TVL 增长可能下降。本轮 8 分，结论 approve。申请方自述尚未独立核验。", "evidence": ["[申请者自述·未独立核验] A6: 预算", "[评审推断·非已核实事实] A6: 预算"], "source_mode": "rules", "fallback_reason": "offline_requested", "retrieved_sources": [], "model_narrative": "[离线规则评审] 预算拆为 3 个里程碑，可分期监督；预算合计与申请金额一致（80000 USDC）；主动披露风险：年化收益率随 TVL 增长可能下降。本轮 8 分，结论 approve。申请方自述尚未独立核验。", "claims": [{"claim": "[{\"milestone\": \"M1 完成策略合约审计\", \"usdc\": 30000}, {\"milestone\": \"M2 TVL 达到 1000 万美元\", \"usdc\": 30000}, {\"milestone\": \"M3 上线移动端\", \"usdc\": 20000}]", "evidence_ids": ["A6"], "verification_status": "applicant_claim", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}, {"claim": "[离线规则评审] 预算拆为 3 个里程碑，可分期监督；预算合计与申请金额一致（80000 USDC）；主动披露风险：年化收益率随 TVL 增长可能下降。本轮 8 分，结论 approve。申请方自述尚未独立核验。", "evidence_ids": ["A6"], "verification_status": "inference", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}], "evidence_registry": {"A1": {"id": "A1", "source_type": "applicant_claim", "field": "problem", "label": "痛点", "text": "Monad 生态 DeFi 协议分散，普通用户难以在十几个协议间做收益优化，资金利用率低。", "verified": false}, "A2": {"id": "A2", "source_type": "applicant_claim", "field": "solution", "label": "方案", "text": "自动把用户资金分配到收益最高的协议，动态再平衡。用户只需质押 NOVA 即可躺赚。", "verified": false}, "A3": {"id": "A3", "source_type": "applicant_claim", "field": "tech", "label": "技术方案", "text": "Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。", "verified": false}, "A4": {"id": "A4", "source_type": "applicant_claim", "field": "traction", "label": "已有进展", "text": "内测 3 周，TVL 120 万美元，参与地址 2400 个。", "verified": false}, "A5": {"id": "A5", "source_type": "applicant_claim", "field": "token", "label": "经济模型", "text": "发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。", "verified": false}, "A6": {"id": "A6", "source_type": "applicant_claim", "field": "budget", "label": "预算", "text": "[{\"milestone\": \"M1 完成策略合约审计\", \"usdc\": 30000}, {\"milestone\": \"M2 TVL 达到 1000 万美元\", \"usdc\": 30000}, {\"milestone\": \"M3 上线移动端\", \"usdc\": 20000}]", "verified": false}, "A7": {"id": "A7", "source_type": "applicant_claim", "field": "risk_note", "label": "风险自述", "text": "年化收益率随 TVL 增长可能下降。", "verified": false}}, "evidence_contract_version": "1.0", "semantic_support": "not_verified"}, {"role": "pm", "round": 1, "score": 5, "verdict": "revise", "content": "[申请者自述·未独立核验] 内测 3 周，TVL 120 万美元，参与地址 2400 个。\n[评审推断·非已核实事实] [离线规则评审] 有清晰的收入来源；痛点描述偏定性，缺少数据；尚无真实用户验证，只有意向。本轮 5 分，结论 revise。申请方自述尚未独立核验。", "evidence": ["[申请者自述·未独立核验] A4: 已有进展", "[评审推断·非已核实事实] A4: 已有进展"], "source_mode": "rules", "fallback_reason": "offline_requested", "retrieved_sources": [], "model_narrative": "[离线规则评审] 有清晰的收入来源；痛点描述偏定性，缺少数据；尚无真实用户验证，只有意向。本轮 5 分，结论 revise。申请方自述尚未独立核验。", "claims": [{"claim": "内测 3 周，TVL 120 万美元，参与地址 2400 个。", "evidence_ids": ["A4"], "verification_status": "applicant_claim", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}, {"claim": "[离线规则评审] 有清晰的收入来源；痛点描述偏定性，缺少数据；尚无真实用户验证，只有意向。本轮 5 分，结论 revise。申请方自述尚未独立核验。", "evidence_ids": ["A4"], "verification_status": "inference", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}], "evidence_registry": {"A1": {"id": "A1", "source_type": "applicant_claim", "field": "problem", "label": "痛点", "text": "Monad 生态 DeFi 协议分散，普通用户难以在十几个协议间做收益优化，资金利用率低。", "verified": false}, "A2": {"id": "A2", "source_type": "applicant_claim", "field": "solution", "label": "方案", "text": "自动把用户资金分配到收益最高的协议，动态再平衡。用户只需质押 NOVA 即可躺赚。", "verified": false}, "A3": {"id": "A3", "source_type": "applicant_claim", "field": "tech", "label": "技术方案", "text": "Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。", "verified": false}, "A4": {"id": "A4", "source_type": "applicant_claim", "field": "traction", "label": "已有进展", "text": "内测 3 周，TVL 120 万美元，参与地址 2400 个。", "verified": false}, "A5": {"id": "A5", "source_type": "applicant_claim", "field": "token", "label": "经济模型", "text": "发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。", "verified": false}, "A6": {"id": "A6", "source_type": "applicant_claim", "field": "budget", "label": "预算", "text": "[{\"milestone\": \"M1 完成策略合约审计\", \"usdc\": 30000}, {\"milestone\": \"M2 TVL 达到 1000 万美元\", \"usdc\": 30000}, {\"milestone\": \"M3 上线移动端\", \"usdc\": 20000}]", "verified": false}, "A7": {"id": "A7", "source_type": "applicant_claim", "field": "risk_note", "label": "风险自述", "text": "年化收益率随 TVL 增长可能下降。", "verified": false}}, "evidence_contract_version": "1.0", "semantic_support": "not_verified"}, {"role": "tech", "round": 1, "score": 6, "verdict": "revise", "content": "[申请者自述·未独立核验] Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。\n[评审推断·非已核实事实] [离线规则评审] 技术栈明确：Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。本轮 6 分，结论 revise。申请方自述尚未独立核验。\n[文档内容·不证明项目事实] 检索原文片段：| Attribute | Ethereum | Monad |\n| - | - | - |\n| **Transactions/second** (smart contract calls and transfers) | \\~10 | \\~10,000 |\n| **Block Frequency** | 12 seconds | 300 ms |\n| **Finality** | [2 epochs](https://hackmd.io/@prysmaticlabs/finality) (12-18 min) | 600 ms |\n| **Bytecode standard** | EVM ([Fusaka fork](https://www.evm.codes)) | EVM ([Fusaka fork](https://www.evm.codes)) |\n| **Precompiles** | `0x01` to `0x11` (Fusaka fork) | `0x01` to `0x11` (Fusaka fork) plus `0x0100` (P256, [EIP-7951](https://eips.ethereum.org/EIPS/eip-7951)) and `0x1000` (staking). See [Precompiles](https://docs.monad.xyz/developer-essentials/precompiles.md) |\n| **Max contract size** | 24.5 kb | 128 kb |\n| **RPC API** | [Ethereum RPC API](https://ethereum.org/en/developers/docs/apis/json-rpc/) | [Monad RPC API](https://docs.monad.xyz/reference/json-rpc.md) (generally identical to Ethereum RPC API, see [diffe", "evidence": ["[申请者自述·未独立核验] A3: 技术方案", "[评审推断·非已核实事实] A3: 技术方案", "[文档内容·不证明项目事实] D1: knowledge/official/developer-overview.md"], "source_mode": "rules", "fallback_reason": "offline_requested", "retrieved_sources": [{"source": "knowledge/official/developer-overview.md", "section": "Comparison to Ethereum: User's Perspective", "text": "| Attribute | Ethereum | Monad |\n| - | - | - |\n| **Transactions/second** (smart contract calls and transfers) | \\~10 | \\~10,000 |\n| **Block Frequency** | 12 seconds | 300 ms |\n| **Finality** | [2 epochs](https://hackmd.io/@prysmaticlabs/finality) (12-18 min) | 600 ms |\n| **Bytecode standard** | EVM ([Fusaka fork](https://www.evm.codes)) | EVM ([Fusaka fork](https://www.evm.codes)) |\n| **Precompiles** | `0x01` to `0x11` (Fusaka fork) | `0x01` to `0x11` (Fusaka fork) plus `0x0100` (P256, [EIP-7951](https://eips.ethereum.org/EIPS/eip-7951)) and `0x1000` (staking). See [Precompiles](https://docs.monad.xyz/developer-essentials/precompiles.md) |\n| **Max contract size** | 24.5 kb | 128 kb |\n| **RPC API** | [Ethereum RPC API](https://ethereum.org/en/developers/docs/apis/json-rpc/) | [Monad RPC API](https://docs.monad.xyz/reference/json-rpc.md) (generally identical to Ethereum RPC API, see [differences](https://docs.monad.xyz/reference/rpc-differences.md)) |\n| **Cryptography** | ECDSA | ECDSA |\n| **Accounts** | Last 20 bytes of keccak-256 of public key under ECDSA | Last 20 bytes of keccak-256 of public key under ECDSA |\n| **Consensus mechanism** | Gasper (Casper-FFG finality gadget + LMD-GHOST fork-choice rule) | [MonadBFT](https://docs.monad.xyz/monad-arch/consensus/monad-bft.md) (tail-fork-resistant pipelined consensus with linear messaging complexity in the common case) |\n| **Mempo", "source_type": "official_monad", "url": "https://docs.monad.xyz/introduction/monad-for-developers.md", "sha256": "d11b36deda7cd63ced09062760e098315130476d415e5a35759b7f84946c756f", "excerpt_offset": 0, "score": 2}, {"source": "knowledge/evidence-policy.md", "section": "源码和合约", "text": "合约地址有代码不代表安全。没有源码时必须说明证据不足；审计报告需核对版本和范围。不得声称已执行未实际执行的源码检查。", "source_type": "project_policy", "url": null, "sha256": null, "excerpt_offset": 0, "score": 3}, {"source": "knowledge/official/developer-overview.md", "section": "Smart contracts", "text": "| | |\n| - | - |\n| Opcodes | Monad is bytecode-compatible with Ethereum (Fusaka fork). All [opcodes](https://www.evm.codes/) as of the Fusaka fork are supported. |\n| Opcode pricing | Opcode pricing is the same as Ethereum, except for a few repricings needed to reweight relative scarcities of resources due to optimizations. [Details](https://docs.monad.xyz/developer-essentials/opcode-pricing.md) |\n| Storage pricing | Storage slots are grouped into pages of 128 consecutive slots, and access is warmed per page rather than per slot. Contracts that read or write consecutive slots pay the cold cost once per page. [Details](https://docs.monad.xyz/developer-essentials/opcode-pricing.md#storage-pages) |\n| Precompiles | All Ethereum precompiles as of the Fusaka fork (`0x01` to `0x11`), plus P256 signature verification at `0x0100` ([EIP-7951](https://eips.ethereum.org/EIPS/eip-7951)) and the staking precompile at `0x1000`. See [Precompiles](https://docs.monad.xyz/developer-essentials/precompiles.md) |\n| Max contract size | 128 kb (up from 24.5 kb in Ethereum) |", "source_type": "official_monad", "url": "https://docs.monad.xyz/introduction/monad-for-developers.md", "sha256": "d11b36deda7cd63ced09062760e098315130476d415e5a35759b7f84946c756f", "excerpt_offset": 0, "score": 2}], "model_narrative": "[离线规则评审] 技术栈明确：Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。本轮 6 分，结论 revise。申请方自述尚未独立核验。", "claims": [{"claim": "Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。", "evidence_ids": ["A3"], "verification_status": "applicant_claim", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}, {"claim": "[离线规则评审] 技术栈明确：Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。本轮 6 分，结论 revise。申请方自述尚未独立核验。", "evidence_ids": ["A3"], "verification_status": "inference", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}, {"claim": "检索原文片段：| Attribute | Ethereum | Monad |\n| - | - | - |\n| **Transactions/second** (smart contract calls and transfers) | \\~10 | \\~10,000 |\n| **Block Frequency** | 12 seconds | 300 ms |\n| **Finality** | [2 epochs](https://hackmd.io/@prysmaticlabs/finality) (12-18 min) | 600 ms |\n| **Bytecode standard** | EVM ([Fusaka fork](https://www.evm.codes)) | EVM ([Fusaka fork](https://www.evm.codes)) |\n| **Precompiles** | `0x01` to `0x11` (Fusaka fork) | `0x01` to `0x11` (Fusaka fork) plus `0x0100` (P256, [EIP-7951](https://eips.ethereum.org/EIPS/eip-7951)) and `0x1000` (staking). See [Precompiles](https://docs.monad.xyz/developer-essentials/precompiles.md) |\n| **Max contract size** | 24.5 kb | 128 kb |\n| **RPC API** | [Ethereum RPC API](https://ethereum.org/en/developers/docs/apis/json-rpc/) | [Monad RPC API](https://docs.monad.xyz/reference/json-rpc.md) (generally identical to Ethereum RPC API, see [diffe", "evidence_ids": ["D1"], "verification_status": "documented_reference", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}], "evidence_registry": {"A1": {"id": "A1", "source_type": "applicant_claim", "field": "problem", "label": "痛点", "text": "Monad 生态 DeFi 协议分散，普通用户难以在十几个协议间做收益优化，资金利用率低。", "verified": false}, "A2": {"id": "A2", "source_type": "applicant_claim", "field": "solution", "label": "方案", "text": "自动把用户资金分配到收益最高的协议，动态再平衡。用户只需质押 NOVA 即可躺赚。", "verified": false}, "A3": {"id": "A3", "source_type": "applicant_claim", "field": "tech", "label": "技术方案", "text": "Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。", "verified": false}, "A4": {"id": "A4", "source_type": "applicant_claim", "field": "traction", "label": "已有进展", "text": "内测 3 周，TVL 120 万美元，参与地址 2400 个。", "verified": false}, "A5": {"id": "A5", "source_type": "applicant_claim", "field": "token", "label": "经济模型", "text": "发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。", "verified": false}, "A6": {"id": "A6", "source_type": "applicant_claim", "field": "budget", "label": "预算", "text": "[{\"milestone\": \"M1 完成策略合约审计\", \"usdc\": 30000}, {\"milestone\": \"M2 TVL 达到 1000 万美元\", \"usdc\": 30000}, {\"milestone\": \"M3 上线移动端\", \"usdc\": 20000}]", "verified": false}, "A7": {"id": "A7", "source_type": "applicant_claim", "field": "risk_note", "label": "风险自述", "text": "年化收益率随 TVL 增长可能下降。", "verified": false}, "D1": {"id": "D1", "source_type": "official_monad", "label": "Comparison to Ethereum: User's Perspective", "text": "| Attribute | Ethereum | Monad |\n| - | - | - |\n| **Transactions/second** (smart contract calls and transfers) | \\~10 | \\~10,000 |\n| **Block Frequency** | 12 seconds | 300 ms |\n| **Finality** | [2 epochs](https://hackmd.io/@prysmaticlabs/finality) (12-18 min) | 600 ms |\n| **Bytecode standard** | EVM ([Fusaka fork](https://www.evm.codes)) | EVM ([Fusaka fork](https://www.evm.codes)) |\n| **Precompiles** | `0x01` to `0x11` (Fusaka fork) | `0x01` to `0x11` (Fusaka fork) plus `0x0100` (P256, [EIP-7951](https://eips.ethereum.org/EIPS/eip-7951)) and `0x1000` (staking). See [Precompiles](https://docs.monad.xyz/developer-essentials/precompiles.md) |\n| **Max contract size** | 24.5 kb | 128 kb |\n| **RPC API** | [Ethereum RPC API](https://ethereum.org/en/developers/docs/apis/json-rpc/) | [Monad RPC API](https://docs.monad.xyz/reference/json-rpc.md) (generally identical to Ethereum RPC API, see [differences](https://docs.monad.xyz/reference/rpc-differences.md)) |\n| **Cryptography** | ECDSA | ECDSA |\n| **Accounts** | Last 20 bytes of keccak-256 of public key under ECDSA | Last 20 bytes of keccak-256 of public key under ECDSA |\n| **Consensus mechanism** | Gasper (Casper-FFG finality gadget + LMD-GHOST fork-choice rule) | [MonadBFT](https://docs.monad.xyz/monad-arch/consensus/monad-bft.md) (tail-fork-resistant pipelined consensus with linear messaging complexity in the common case) |\n| **Mempo", "source": "knowledge/official/developer-overview.md", "url": "https://docs.monad.xyz/introduction/monad-for-developers.md", "sha256": "d11b36deda7cd63ced09062760e098315130476d415e5a35759b7f84946c756f", "verified": false}, "D2": {"id": "D2", "source_type": "project_policy", "label": "源码和合约", "text": "合约地址有代码不代表安全。没有源码时必须说明证据不足；审计报告需核对版本和范围。不得声称已执行未实际执行的源码检查。", "source": "knowledge/evidence-policy.md", "url": null, "sha256": null, "verified": false}, "D3": {"id": "D3", "source_type": "official_monad", "label": "Smart contracts", "text": "| | |\n| - | - |\n| Opcodes | Monad is bytecode-compatible with Ethereum (Fusaka fork). All [opcodes](https://www.evm.codes/) as of the Fusaka fork are supported. |\n| Opcode pricing | Opcode pricing is the same as Ethereum, except for a few repricings needed to reweight relative scarcities of resources due to optimizations. [Details](https://docs.monad.xyz/developer-essentials/opcode-pricing.md) |\n| Storage pricing | Storage slots are grouped into pages of 128 consecutive slots, and access is warmed per page rather than per slot. Contracts that read or write consecutive slots pay the cold cost once per page. [Details](https://docs.monad.xyz/developer-essentials/opcode-pricing.md#storage-pages) |\n| Precompiles | All Ethereum precompiles as of the Fusaka fork (`0x01` to `0x11`), plus P256 signature verification at `0x0100` ([EIP-7951](https://eips.ethereum.org/EIPS/eip-7951)) and the staking precompile at `0x1000`. See [Precompiles](https://docs.monad.xyz/developer-essentials/precompiles.md) |\n| Max contract size | 128 kb (up from 24.5 kb in Ethereum) |", "source": "knowledge/official/developer-overview.md", "url": "https://docs.monad.xyz/introduction/monad-for-developers.md", "sha256": "d11b36deda7cd63ced09062760e098315130476d415e5a35759b7f84946c756f", "verified": false}}, "evidence_contract_version": "1.0", "semantic_support": "not_verified"}, {"role": "token", "round": 1, "score": 1, "verdict": "reject", "content": "[申请者自述·未独立核验] 发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。\n[评审推断·非已核实事实] [离线规则评审] 用新增资金支付存量收益；需持续回购销毁来维持收益率；团队份额过高；承诺年化 38%，显著高于无风险利率；经济结构不可持续。本轮 1 分，结论 reject。申请方自述尚未独立核验。", "evidence": ["[申请者自述·未独立核验] A5: 经济模型", "[评审推断·非已核实事实] A5: 经济模型"], "source_mode": "rules", "fallback_reason": "offline_requested", "retrieved_sources": [], "model_narrative": "[离线规则评审] 用新增资金支付存量收益；需持续回购销毁来维持收益率；团队份额过高；承诺年化 38%，显著高于无风险利率；经济结构不可持续。本轮 1 分，结论 reject。申请方自述尚未独立核验。", "claims": [{"claim": "发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。", "evidence_ids": ["A5"], "verification_status": "applicant_claim", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}, {"claim": "[离线规则评审] 用新增资金支付存量收益；需持续回购销毁来维持收益率；团队份额过高；承诺年化 38%，显著高于无风险利率；经济结构不可持续。本轮 1 分，结论 reject。申请方自述尚未独立核验。", "evidence_ids": ["A5"], "verification_status": "inference", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}], "evidence_registry": {"A1": {"id": "A1", "source_type": "applicant_claim", "field": "problem", "label": "痛点", "text": "Monad 生态 DeFi 协议分散，普通用户难以在十几个协议间做收益优化，资金利用率低。", "verified": false}, "A2": {"id": "A2", "source_type": "applicant_claim", "field": "solution", "label": "方案", "text": "自动把用户资金分配到收益最高的协议，动态再平衡。用户只需质押 NOVA 即可躺赚。", "verified": false}, "A3": {"id": "A3", "source_type": "applicant_claim", "field": "tech", "label": "技术方案", "text": "Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。", "verified": false}, "A4": {"id": "A4", "source_type": "applicant_claim", "field": "traction", "label": "已有进展", "text": "内测 3 周，TVL 120 万美元，参与地址 2400 个。", "verified": false}, "A5": {"id": "A5", "source_type": "applicant_claim", "field": "token", "label": "经济模型", "text": "发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。", "verified": false}, "A6": {"id": "A6", "source_type": "applicant_claim", "field": "budget", "label": "预算", "text": "[{\"milestone\": \"M1 完成策略合约审计\", \"usdc\": 30000}, {\"milestone\": \"M2 TVL 达到 1000 万美元\", \"usdc\": 30000}, {\"milestone\": \"M3 上线移动端\", \"usdc\": 20000}]", "verified": false}, "A7": {"id": "A7", "source_type": "applicant_claim", "field": "risk_note", "label": "风险自述", "text": "年化收益率随 TVL 增长可能下降。", "verified": false}}, "evidence_contract_version": "1.0", "semantic_support": "not_verified"}, {"role": "compliance", "round": 2, "score": 2, "verdict": "reject", "content": "[申请者自述·未独立核验] [{\"milestone\": \"M1 完成策略合约审计\", \"usdc\": 30000}, {\"milestone\": \"M2 TVL 达到 1000 万美元\", \"usdc\": 30000}, {\"milestone\": \"M3 上线移动端\", \"usdc\": 20000}]\n[评审推断·非已核实事实] [离线规则评审] 预算拆为 3 个里程碑，可分期监督；预算合计与申请金额一致（80000 USDC）；主动披露风险：年化收益率随 TVL 增长可能下降；代币经济学已提出否决意见。上一轮 8 分，按复议规则调整为 2 分；参考风险角色：token。本轮 2 分，结论 reject。申请方自述尚未独立核验。", "evidence": ["[申请者自述·未独立核验] A6: 预算", "[评审推断·非已核实事实] A6: 预算；P1_token: 上一轮 token 意见"], "source_mode": "rules", "fallback_reason": "offline_requested", "retrieved_sources": [], "model_narrative": "[离线规则评审] 预算拆为 3 个里程碑，可分期监督；预算合计与申请金额一致（80000 USDC）；主动披露风险：年化收益率随 TVL 增长可能下降；代币经济学已提出否决意见。上一轮 8 分，按复议规则调整为 2 分；参考风险角色：token。本轮 2 分，结论 reject。申请方自述尚未独立核验。", "claims": [{"claim": "[{\"milestone\": \"M1 完成策略合约审计\", \"usdc\": 30000}, {\"milestone\": \"M2 TVL 达到 1000 万美元\", \"usdc\": 30000}, {\"milestone\": \"M3 上线移动端\", \"usdc\": 20000}]", "evidence_ids": ["A6"], "verification_status": "applicant_claim", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}, {"claim": "[离线规则评审] 预算拆为 3 个里程碑，可分期监督；预算合计与申请金额一致（80000 USDC）；主动披露风险：年化收益率随 TVL 增长可能下降；代币经济学已提出否决意见。上一轮 8 分，按复议规则调整为 2 分；参考风险角色：token。本轮 2 分，结论 reject。申请方自述尚未独立核验。", "evidence_ids": ["A6", "P1_token"], "verification_status": "inference", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}], "evidence_registry": {"A1": {"id": "A1", "source_type": "applicant_claim", "field": "problem", "label": "痛点", "text": "Monad 生态 DeFi 协议分散，普通用户难以在十几个协议间做收益优化，资金利用率低。", "verified": false}, "A2": {"id": "A2", "source_type": "applicant_claim", "field": "solution", "label": "方案", "text": "自动把用户资金分配到收益最高的协议，动态再平衡。用户只需质押 NOVA 即可躺赚。", "verified": false}, "A3": {"id": "A3", "source_type": "applicant_claim", "field": "tech", "label": "技术方案", "text": "Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。", "verified": false}, "A4": {"id": "A4", "source_type": "applicant_claim", "field": "traction", "label": "已有进展", "text": "内测 3 周，TVL 120 万美元，参与地址 2400 个。", "verified": false}, "A5": {"id": "A5", "source_type": "applicant_claim", "field": "token", "label": "经济模型", "text": "发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。", "verified": false}, "A6": {"id": "A6", "source_type": "applicant_claim", "field": "budget", "label": "预算", "text": "[{\"milestone\": \"M1 完成策略合约审计\", \"usdc\": 30000}, {\"milestone\": \"M2 TVL 达到 1000 万美元\", \"usdc\": 30000}, {\"milestone\": \"M3 上线移动端\", \"usdc\": 20000}]", "verified": false}, "A7": {"id": "A7", "source_type": "applicant_claim", "field": "risk_note", "label": "风险自述", "text": "年化收益率随 TVL 增长可能下降。", "verified": false}, "P1_compliance": {"id": "P1_compliance", "source_type": "peer_opinion", "label": "上一轮 compliance 意见", "text": "[申请者自述·未独立核验] [{\"milestone\": \"M1 完成策略合约审计\", \"usdc\": 30000}, {\"milestone\": \"M2 TVL 达到 1000 万美元\", \"usdc\": 30000}, {\"milestone\": \"M3 上线移动端\", \"usdc\": 20000}]\n[评审推断·非已核实事实] [离线规则评审] 预算拆为 3 个里程碑，可分期监督；预算合计与申请金额一致（80000 USDC）；主动披露风险：年化收益率随 TVL 增长可能下降。本轮 8 分，结论 approve。申请方自述尚未独立核验。", "score": 8, "verdict": "approve", "verified": false}, "P1_pm": {"id": "P1_pm", "source_type": "peer_opinion", "label": "上一轮 pm 意见", "text": "[申请者自述·未独立核验] 内测 3 周，TVL 120 万美元，参与地址 2400 个。\n[评审推断·非已核实事实] [离线规则评审] 有清晰的收入来源；痛点描述偏定性，缺少数据；尚无真实用户验证，只有意向。本轮 5 分，结论 revise。申请方自述尚未独立核验。", "score": 5, "verdict": "revise", "verified": false}, "P1_tech": {"id": "P1_tech", "source_type": "peer_opinion", "label": "上一轮 tech 意见", "text": "[申请者自述·未独立核验] Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。\n[评审推断·非已核实事实] [离线规则评审] 技术栈明确：Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。本轮 6 分，结论 revise。申请方自述尚未独立核验。\n[文档内容·不证明项目事实] 检索原文片段：| Attribute | Ethereum | Monad |\n| - | - | - |\n| **Transactions/second** (smart contract calls and transfers) | \\~10 | \\~10,000 |\n| **Block Frequency** | 12 seconds | 300 ms |\n| **Finality** | [2 epochs](https://hackmd.io/@prysmaticlabs/finality) (12-18 min) | 600 ms |\n| **Bytecode standard** | EVM ([Fusaka fork](https://www.evm.codes)) | EVM ([Fusaka fork](https://www.evm.codes)) |\n| **Precompiles** | `0x01` to `0x11` (Fusaka fork) | `0x01` to `0x11` (Fusaka fork) plus `0x0100` (P256, [EIP-7951](https://eips.ethereum.org/EIPS/eip-7951)) and `0x1000` (staking). See [Precompiles](https://docs.monad.xyz/developer-essentials/precompiles.md) |\n| **Max contract size** | 24.5 kb | 128 kb |\n| **RPC API** | [Ethereum RPC API](https://ethereum.org/en/developers/docs/apis/json-rpc/) | [Monad RPC API](https://docs.monad.xyz/reference/json-rpc.md) (generally identical to Ethereum RPC API, see [diffe", "score": 6, "verdict": "revise", "verified": false}, "P1_token": {"id": "P1_token", "source_type": "peer_opinion", "label": "上一轮 token 意见", "text": "[申请者自述·未独立核验] 发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。\n[评审推断·非已核实事实] [离线规则评审] 用新增资金支付存量收益；需持续回购销毁来维持收益率；团队份额过高；承诺年化 38%，显著高于无风险利率；经济结构不可持续。本轮 1 分，结论 reject。申请方自述尚未独立核验。", "score": 1, "verdict": "reject", "verified": false}}, "evidence_contract_version": "1.0", "semantic_support": "not_verified"}, {"role": "pm", "round": 2, "score": 3, "verdict": "reject", "content": "[申请者自述·未独立核验] 内测 3 周，TVL 120 万美元，参与地址 2400 个。\n[评审推断·非已核实事实] [离线规则评审] 有清晰的收入来源；痛点描述偏定性，缺少数据；尚无真实用户验证，只有意向。上一轮 5 分，按复议规则调整为 3 分；参考风险角色：token。本轮 3 分，结论 reject。申请方自述尚未独立核验。", "evidence": ["[申请者自述·未独立核验] A4: 已有进展", "[评审推断·非已核实事实] A4: 已有进展；P1_token: 上一轮 token 意见"], "source_mode": "rules", "fallback_reason": "offline_requested", "retrieved_sources": [], "model_narrative": "[离线规则评审] 有清晰的收入来源；痛点描述偏定性，缺少数据；尚无真实用户验证，只有意向。上一轮 5 分，按复议规则调整为 3 分；参考风险角色：token。本轮 3 分，结论 reject。申请方自述尚未独立核验。", "claims": [{"claim": "内测 3 周，TVL 120 万美元，参与地址 2400 个。", "evidence_ids": ["A4"], "verification_status": "applicant_claim", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}, {"claim": "[离线规则评审] 有清晰的收入来源；痛点描述偏定性，缺少数据；尚无真实用户验证，只有意向。上一轮 5 分，按复议规则调整为 3 分；参考风险角色：token。本轮 3 分，结论 reject。申请方自述尚未独立核验。", "evidence_ids": ["A4", "P1_token"], "verification_status": "inference", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}], "evidence_registry": {"A1": {"id": "A1", "source_type": "applicant_claim", "field": "problem", "label": "痛点", "text": "Monad 生态 DeFi 协议分散，普通用户难以在十几个协议间做收益优化，资金利用率低。", "verified": false}, "A2": {"id": "A2", "source_type": "applicant_claim", "field": "solution", "label": "方案", "text": "自动把用户资金分配到收益最高的协议，动态再平衡。用户只需质押 NOVA 即可躺赚。", "verified": false}, "A3": {"id": "A3", "source_type": "applicant_claim", "field": "tech", "label": "技术方案", "text": "Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。", "verified": false}, "A4": {"id": "A4", "source_type": "applicant_claim", "field": "traction", "label": "已有进展", "text": "内测 3 周，TVL 120 万美元，参与地址 2400 个。", "verified": false}, "A5": {"id": "A5", "source_type": "applicant_claim", "field": "token", "label": "经济模型", "text": "发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。", "verified": false}, "A6": {"id": "A6", "source_type": "applicant_claim", "field": "budget", "label": "预算", "text": "[{\"milestone\": \"M1 完成策略合约审计\", \"usdc\": 30000}, {\"milestone\": \"M2 TVL 达到 1000 万美元\", \"usdc\": 30000}, {\"milestone\": \"M3 上线移动端\", \"usdc\": 20000}]", "verified": false}, "A7": {"id": "A7", "source_type": "applicant_claim", "field": "risk_note", "label": "风险自述", "text": "年化收益率随 TVL 增长可能下降。", "verified": false}, "P1_compliance": {"id": "P1_compliance", "source_type": "peer_opinion", "label": "上一轮 compliance 意见", "text": "[申请者自述·未独立核验] [{\"milestone\": \"M1 完成策略合约审计\", \"usdc\": 30000}, {\"milestone\": \"M2 TVL 达到 1000 万美元\", \"usdc\": 30000}, {\"milestone\": \"M3 上线移动端\", \"usdc\": 20000}]\n[评审推断·非已核实事实] [离线规则评审] 预算拆为 3 个里程碑，可分期监督；预算合计与申请金额一致（80000 USDC）；主动披露风险：年化收益率随 TVL 增长可能下降。本轮 8 分，结论 approve。申请方自述尚未独立核验。", "score": 8, "verdict": "approve", "verified": false}, "P1_pm": {"id": "P1_pm", "source_type": "peer_opinion", "label": "上一轮 pm 意见", "text": "[申请者自述·未独立核验] 内测 3 周，TVL 120 万美元，参与地址 2400 个。\n[评审推断·非已核实事实] [离线规则评审] 有清晰的收入来源；痛点描述偏定性，缺少数据；尚无真实用户验证，只有意向。本轮 5 分，结论 revise。申请方自述尚未独立核验。", "score": 5, "verdict": "revise", "verified": false}, "P1_tech": {"id": "P1_tech", "source_type": "peer_opinion", "label": "上一轮 tech 意见", "text": "[申请者自述·未独立核验] Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。\n[评审推断·非已核实事实] [离线规则评审] 技术栈明确：Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。本轮 6 分，结论 revise。申请方自述尚未独立核验。\n[文档内容·不证明项目事实] 检索原文片段：| Attribute | Ethereum | Monad |\n| - | - | - |\n| **Transactions/second** (smart contract calls and transfers) | \\~10 | \\~10,000 |\n| **Block Frequency** | 12 seconds | 300 ms |\n| **Finality** | [2 epochs](https://hackmd.io/@prysmaticlabs/finality) (12-18 min) | 600 ms |\n| **Bytecode standard** | EVM ([Fusaka fork](https://www.evm.codes)) | EVM ([Fusaka fork](https://www.evm.codes)) |\n| **Precompiles** | `0x01` to `0x11` (Fusaka fork) | `0x01` to `0x11` (Fusaka fork) plus `0x0100` (P256, [EIP-7951](https://eips.ethereum.org/EIPS/eip-7951)) and `0x1000` (staking). See [Precompiles](https://docs.monad.xyz/developer-essentials/precompiles.md) |\n| **Max contract size** | 24.5 kb | 128 kb |\n| **RPC API** | [Ethereum RPC API](https://ethereum.org/en/developers/docs/apis/json-rpc/) | [Monad RPC API](https://docs.monad.xyz/reference/json-rpc.md) (generally identical to Ethereum RPC API, see [diffe", "score": 6, "verdict": "revise", "verified": false}, "P1_token": {"id": "P1_token", "source_type": "peer_opinion", "label": "上一轮 token 意见", "text": "[申请者自述·未独立核验] 发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。\n[评审推断·非已核实事实] [离线规则评审] 用新增资金支付存量收益；需持续回购销毁来维持收益率；团队份额过高；承诺年化 38%，显著高于无风险利率；经济结构不可持续。本轮 1 分，结论 reject。申请方自述尚未独立核验。", "score": 1, "verdict": "reject", "verified": false}}, "evidence_contract_version": "1.0", "semantic_support": "not_verified"}, {"role": "tech", "round": 2, "score": 6, "verdict": "revise", "content": "[申请者自述·未独立核验] Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。\n[评审推断·非已核实事实] [离线规则评审] 技术栈明确：Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。本轮 6 分，结论 revise。申请方自述尚未独立核验。\n[文档内容·不证明项目事实] 检索原文片段：| Attribute | Ethereum | Monad |\n| - | - | - |\n| **Transactions/second** (smart contract calls and transfers) | \\~10 | \\~10,000 |\n| **Block Frequency** | 12 seconds | 300 ms |\n| **Finality** | [2 epochs](https://hackmd.io/@prysmaticlabs/finality) (12-18 min) | 600 ms |\n| **Bytecode standard** | EVM ([Fusaka fork](https://www.evm.codes)) | EVM ([Fusaka fork](https://www.evm.codes)) |\n| **Precompiles** | `0x01` to `0x11` (Fusaka fork) | `0x01` to `0x11` (Fusaka fork) plus `0x0100` (P256, [EIP-7951](https://eips.ethereum.org/EIPS/eip-7951)) and `0x1000` (staking). See [Precompiles](https://docs.monad.xyz/developer-essentials/precompiles.md) |\n| **Max contract size** | 24.5 kb | 128 kb |\n| **RPC API** | [Ethereum RPC API](https://ethereum.org/en/developers/docs/apis/json-rpc/) | [Monad RPC API](https://docs.monad.xyz/reference/json-rpc.md) (generally identical to Ethereum RPC API, see [diffe", "evidence": ["[申请者自述·未独立核验] A3: 技术方案", "[评审推断·非已核实事实] A3: 技术方案；P1_token: 上一轮 token 意见", "[文档内容·不证明项目事实] D1: knowledge/official/developer-overview.md"], "source_mode": "rules", "fallback_reason": "offline_requested", "retrieved_sources": [{"source": "knowledge/official/developer-overview.md", "section": "Comparison to Ethereum: User's Perspective", "text": "| Attribute | Ethereum | Monad |\n| - | - | - |\n| **Transactions/second** (smart contract calls and transfers) | \\~10 | \\~10,000 |\n| **Block Frequency** | 12 seconds | 300 ms |\n| **Finality** | [2 epochs](https://hackmd.io/@prysmaticlabs/finality) (12-18 min) | 600 ms |\n| **Bytecode standard** | EVM ([Fusaka fork](https://www.evm.codes)) | EVM ([Fusaka fork](https://www.evm.codes)) |\n| **Precompiles** | `0x01` to `0x11` (Fusaka fork) | `0x01` to `0x11` (Fusaka fork) plus `0x0100` (P256, [EIP-7951](https://eips.ethereum.org/EIPS/eip-7951)) and `0x1000` (staking). See [Precompiles](https://docs.monad.xyz/developer-essentials/precompiles.md) |\n| **Max contract size** | 24.5 kb | 128 kb |\n| **RPC API** | [Ethereum RPC API](https://ethereum.org/en/developers/docs/apis/json-rpc/) | [Monad RPC API](https://docs.monad.xyz/reference/json-rpc.md) (generally identical to Ethereum RPC API, see [differences](https://docs.monad.xyz/reference/rpc-differences.md)) |\n| **Cryptography** | ECDSA | ECDSA |\n| **Accounts** | Last 20 bytes of keccak-256 of public key under ECDSA | Last 20 bytes of keccak-256 of public key under ECDSA |\n| **Consensus mechanism** | Gasper (Casper-FFG finality gadget + LMD-GHOST fork-choice rule) | [MonadBFT](https://docs.monad.xyz/monad-arch/consensus/monad-bft.md) (tail-fork-resistant pipelined consensus with linear messaging complexity in the common case) |\n| **Mempo", "source_type": "official_monad", "url": "https://docs.monad.xyz/introduction/monad-for-developers.md", "sha256": "d11b36deda7cd63ced09062760e098315130476d415e5a35759b7f84946c756f", "excerpt_offset": 0, "score": 2}, {"source": "knowledge/evidence-policy.md", "section": "源码和合约", "text": "合约地址有代码不代表安全。没有源码时必须说明证据不足；审计报告需核对版本和范围。不得声称已执行未实际执行的源码检查。", "source_type": "project_policy", "url": null, "sha256": null, "excerpt_offset": 0, "score": 3}, {"source": "knowledge/official/developer-overview.md", "section": "Smart contracts", "text": "| | |\n| - | - |\n| Opcodes | Monad is bytecode-compatible with Ethereum (Fusaka fork). All [opcodes](https://www.evm.codes/) as of the Fusaka fork are supported. |\n| Opcode pricing | Opcode pricing is the same as Ethereum, except for a few repricings needed to reweight relative scarcities of resources due to optimizations. [Details](https://docs.monad.xyz/developer-essentials/opcode-pricing.md) |\n| Storage pricing | Storage slots are grouped into pages of 128 consecutive slots, and access is warmed per page rather than per slot. Contracts that read or write consecutive slots pay the cold cost once per page. [Details](https://docs.monad.xyz/developer-essentials/opcode-pricing.md#storage-pages) |\n| Precompiles | All Ethereum precompiles as of the Fusaka fork (`0x01` to `0x11`), plus P256 signature verification at `0x0100` ([EIP-7951](https://eips.ethereum.org/EIPS/eip-7951)) and the staking precompile at `0x1000`. See [Precompiles](https://docs.monad.xyz/developer-essentials/precompiles.md) |\n| Max contract size | 128 kb (up from 24.5 kb in Ethereum) |", "source_type": "official_monad", "url": "https://docs.monad.xyz/introduction/monad-for-developers.md", "sha256": "d11b36deda7cd63ced09062760e098315130476d415e5a35759b7f84946c756f", "excerpt_offset": 0, "score": 2}], "model_narrative": "[离线规则评审] 技术栈明确：Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。本轮 6 分，结论 revise。申请方自述尚未独立核验。", "claims": [{"claim": "Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。", "evidence_ids": ["A3"], "verification_status": "applicant_claim", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}, {"claim": "[离线规则评审] 技术栈明确：Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。本轮 6 分，结论 revise。申请方自述尚未独立核验。", "evidence_ids": ["A3", "P1_token"], "verification_status": "inference", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}, {"claim": "检索原文片段：| Attribute | Ethereum | Monad |\n| - | - | - |\n| **Transactions/second** (smart contract calls and transfers) | \\~10 | \\~10,000 |\n| **Block Frequency** | 12 seconds | 300 ms |\n| **Finality** | [2 epochs](https://hackmd.io/@prysmaticlabs/finality) (12-18 min) | 600 ms |\n| **Bytecode standard** | EVM ([Fusaka fork](https://www.evm.codes)) | EVM ([Fusaka fork](https://www.evm.codes)) |\n| **Precompiles** | `0x01` to `0x11` (Fusaka fork) | `0x01` to `0x11` (Fusaka fork) plus `0x0100` (P256, [EIP-7951](https://eips.ethereum.org/EIPS/eip-7951)) and `0x1000` (staking). See [Precompiles](https://docs.monad.xyz/developer-essentials/precompiles.md) |\n| **Max contract size** | 24.5 kb | 128 kb |\n| **RPC API** | [Ethereum RPC API](https://ethereum.org/en/developers/docs/apis/json-rpc/) | [Monad RPC API](https://docs.monad.xyz/reference/json-rpc.md) (generally identical to Ethereum RPC API, see [diffe", "evidence_ids": ["D1"], "verification_status": "documented_reference", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}], "evidence_registry": {"A1": {"id": "A1", "source_type": "applicant_claim", "field": "problem", "label": "痛点", "text": "Monad 生态 DeFi 协议分散，普通用户难以在十几个协议间做收益优化，资金利用率低。", "verified": false}, "A2": {"id": "A2", "source_type": "applicant_claim", "field": "solution", "label": "方案", "text": "自动把用户资金分配到收益最高的协议，动态再平衡。用户只需质押 NOVA 即可躺赚。", "verified": false}, "A3": {"id": "A3", "source_type": "applicant_claim", "field": "tech", "label": "技术方案", "text": "Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。", "verified": false}, "A4": {"id": "A4", "source_type": "applicant_claim", "field": "traction", "label": "已有进展", "text": "内测 3 周，TVL 120 万美元，参与地址 2400 个。", "verified": false}, "A5": {"id": "A5", "source_type": "applicant_claim", "field": "token", "label": "经济模型", "text": "发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。", "verified": false}, "A6": {"id": "A6", "source_type": "applicant_claim", "field": "budget", "label": "预算", "text": "[{\"milestone\": \"M1 完成策略合约审计\", \"usdc\": 30000}, {\"milestone\": \"M2 TVL 达到 1000 万美元\", \"usdc\": 30000}, {\"milestone\": \"M3 上线移动端\", \"usdc\": 20000}]", "verified": false}, "A7": {"id": "A7", "source_type": "applicant_claim", "field": "risk_note", "label": "风险自述", "text": "年化收益率随 TVL 增长可能下降。", "verified": false}, "D1": {"id": "D1", "source_type": "official_monad", "label": "Comparison to Ethereum: User's Perspective", "text": "| Attribute | Ethereum | Monad |\n| - | - | - |\n| **Transactions/second** (smart contract calls and transfers) | \\~10 | \\~10,000 |\n| **Block Frequency** | 12 seconds | 300 ms |\n| **Finality** | [2 epochs](https://hackmd.io/@prysmaticlabs/finality) (12-18 min) | 600 ms |\n| **Bytecode standard** | EVM ([Fusaka fork](https://www.evm.codes)) | EVM ([Fusaka fork](https://www.evm.codes)) |\n| **Precompiles** | `0x01` to `0x11` (Fusaka fork) | `0x01` to `0x11` (Fusaka fork) plus `0x0100` (P256, [EIP-7951](https://eips.ethereum.org/EIPS/eip-7951)) and `0x1000` (staking). See [Precompiles](https://docs.monad.xyz/developer-essentials/precompiles.md) |\n| **Max contract size** | 24.5 kb | 128 kb |\n| **RPC API** | [Ethereum RPC API](https://ethereum.org/en/developers/docs/apis/json-rpc/) | [Monad RPC API](https://docs.monad.xyz/reference/json-rpc.md) (generally identical to Ethereum RPC API, see [differences](https://docs.monad.xyz/reference/rpc-differences.md)) |\n| **Cryptography** | ECDSA | ECDSA |\n| **Accounts** | Last 20 bytes of keccak-256 of public key under ECDSA | Last 20 bytes of keccak-256 of public key under ECDSA |\n| **Consensus mechanism** | Gasper (Casper-FFG finality gadget + LMD-GHOST fork-choice rule) | [MonadBFT](https://docs.monad.xyz/monad-arch/consensus/monad-bft.md) (tail-fork-resistant pipelined consensus with linear messaging complexity in the common case) |\n| **Mempo", "source": "knowledge/official/developer-overview.md", "url": "https://docs.monad.xyz/introduction/monad-for-developers.md", "sha256": "d11b36deda7cd63ced09062760e098315130476d415e5a35759b7f84946c756f", "verified": false}, "D2": {"id": "D2", "source_type": "project_policy", "label": "源码和合约", "text": "合约地址有代码不代表安全。没有源码时必须说明证据不足；审计报告需核对版本和范围。不得声称已执行未实际执行的源码检查。", "source": "knowledge/evidence-policy.md", "url": null, "sha256": null, "verified": false}, "D3": {"id": "D3", "source_type": "official_monad", "label": "Smart contracts", "text": "| | |\n| - | - |\n| Opcodes | Monad is bytecode-compatible with Ethereum (Fusaka fork). All [opcodes](https://www.evm.codes/) as of the Fusaka fork are supported. |\n| Opcode pricing | Opcode pricing is the same as Ethereum, except for a few repricings needed to reweight relative scarcities of resources due to optimizations. [Details](https://docs.monad.xyz/developer-essentials/opcode-pricing.md) |\n| Storage pricing | Storage slots are grouped into pages of 128 consecutive slots, and access is warmed per page rather than per slot. Contracts that read or write consecutive slots pay the cold cost once per page. [Details](https://docs.monad.xyz/developer-essentials/opcode-pricing.md#storage-pages) |\n| Precompiles | All Ethereum precompiles as of the Fusaka fork (`0x01` to `0x11`), plus P256 signature verification at `0x0100` ([EIP-7951](https://eips.ethereum.org/EIPS/eip-7951)) and the staking precompile at `0x1000`. See [Precompiles](https://docs.monad.xyz/developer-essentials/precompiles.md) |\n| Max contract size | 128 kb (up from 24.5 kb in Ethereum) |", "source": "knowledge/official/developer-overview.md", "url": "https://docs.monad.xyz/introduction/monad-for-developers.md", "sha256": "d11b36deda7cd63ced09062760e098315130476d415e5a35759b7f84946c756f", "verified": false}, "P1_compliance": {"id": "P1_compliance", "source_type": "peer_opinion", "label": "上一轮 compliance 意见", "text": "[申请者自述·未独立核验] [{\"milestone\": \"M1 完成策略合约审计\", \"usdc\": 30000}, {\"milestone\": \"M2 TVL 达到 1000 万美元\", \"usdc\": 30000}, {\"milestone\": \"M3 上线移动端\", \"usdc\": 20000}]\n[评审推断·非已核实事实] [离线规则评审] 预算拆为 3 个里程碑，可分期监督；预算合计与申请金额一致（80000 USDC）；主动披露风险：年化收益率随 TVL 增长可能下降。本轮 8 分，结论 approve。申请方自述尚未独立核验。", "score": 8, "verdict": "approve", "verified": false}, "P1_pm": {"id": "P1_pm", "source_type": "peer_opinion", "label": "上一轮 pm 意见", "text": "[申请者自述·未独立核验] 内测 3 周，TVL 120 万美元，参与地址 2400 个。\n[评审推断·非已核实事实] [离线规则评审] 有清晰的收入来源；痛点描述偏定性，缺少数据；尚无真实用户验证，只有意向。本轮 5 分，结论 revise。申请方自述尚未独立核验。", "score": 5, "verdict": "revise", "verified": false}, "P1_tech": {"id": "P1_tech", "source_type": "peer_opinion", "label": "上一轮 tech 意见", "text": "[申请者自述·未独立核验] Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。\n[评审推断·非已核实事实] [离线规则评审] 技术栈明确：Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。本轮 6 分，结论 revise。申请方自述尚未独立核验。\n[文档内容·不证明项目事实] 检索原文片段：| Attribute | Ethereum | Monad |\n| - | - | - |\n| **Transactions/second** (smart contract calls and transfers) | \\~10 | \\~10,000 |\n| **Block Frequency** | 12 seconds | 300 ms |\n| **Finality** | [2 epochs](https://hackmd.io/@prysmaticlabs/finality) (12-18 min) | 600 ms |\n| **Bytecode standard** | EVM ([Fusaka fork](https://www.evm.codes)) | EVM ([Fusaka fork](https://www.evm.codes)) |\n| **Precompiles** | `0x01` to `0x11` (Fusaka fork) | `0x01` to `0x11` (Fusaka fork) plus `0x0100` (P256, [EIP-7951](https://eips.ethereum.org/EIPS/eip-7951)) and `0x1000` (staking). See [Precompiles](https://docs.monad.xyz/developer-essentials/precompiles.md) |\n| **Max contract size** | 24.5 kb | 128 kb |\n| **RPC API** | [Ethereum RPC API](https://ethereum.org/en/developers/docs/apis/json-rpc/) | [Monad RPC API](https://docs.monad.xyz/reference/json-rpc.md) (generally identical to Ethereum RPC API, see [diffe", "score": 6, "verdict": "revise", "verified": false}, "P1_token": {"id": "P1_token", "source_type": "peer_opinion", "label": "上一轮 token 意见", "text": "[申请者自述·未独立核验] 发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。\n[评审推断·非已核实事实] [离线规则评审] 用新增资金支付存量收益；需持续回购销毁来维持收益率；团队份额过高；承诺年化 38%，显著高于无风险利率；经济结构不可持续。本轮 1 分，结论 reject。申请方自述尚未独立核验。", "score": 1, "verdict": "reject", "verified": false}}, "evidence_contract_version": "1.0", "semantic_support": "not_verified"}, {"role": "token", "round": 2, "score": 1, "verdict": "reject", "content": "[申请者自述·未独立核验] 发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。\n[评审推断·非已核实事实] [离线规则评审] 用新增资金支付存量收益；需持续回购销毁来维持收益率；团队份额过高；承诺年化 38%，显著高于无风险利率；经济结构不可持续。本轮 1 分，结论 reject。申请方自述尚未独立核验。", "evidence": ["[申请者自述·未独立核验] A5: 经济模型", "[评审推断·非已核实事实] A5: 经济模型；P1_token: 上一轮 token 意见"], "source_mode": "rules", "fallback_reason": "offline_requested", "retrieved_sources": [], "model_narrative": "[离线规则评审] 用新增资金支付存量收益；需持续回购销毁来维持收益率；团队份额过高；承诺年化 38%，显著高于无风险利率；经济结构不可持续。本轮 1 分，结论 reject。申请方自述尚未独立核验。", "claims": [{"claim": "发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。", "evidence_ids": ["A5"], "verification_status": "applicant_claim", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}, {"claim": "[离线规则评审] 用新增资金支付存量收益；需持续回购销毁来维持收益率；团队份额过高；承诺年化 38%，显著高于无风险利率；经济结构不可持续。本轮 1 分，结论 reject。申请方自述尚未独立核验。", "evidence_ids": ["A5", "P1_token"], "verification_status": "inference", "reference_check": "valid_ids_and_source_types", "semantic_support": "not_verified"}], "evidence_registry": {"A1": {"id": "A1", "source_type": "applicant_claim", "field": "problem", "label": "痛点", "text": "Monad 生态 DeFi 协议分散，普通用户难以在十几个协议间做收益优化，资金利用率低。", "verified": false}, "A2": {"id": "A2", "source_type": "applicant_claim", "field": "solution", "label": "方案", "text": "自动把用户资金分配到收益最高的协议，动态再平衡。用户只需质押 NOVA 即可躺赚。", "verified": false}, "A3": {"id": "A3", "source_type": "applicant_claim", "field": "tech", "label": "技术方案", "text": "Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。", "verified": false}, "A4": {"id": "A4", "source_type": "applicant_claim", "field": "traction", "label": "已有进展", "text": "内测 3 周，TVL 120 万美元，参与地址 2400 个。", "verified": false}, "A5": {"id": "A5", "source_type": "applicant_claim", "field": "token", "label": "经济模型", "text": "发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。", "verified": false}, "A6": {"id": "A6", "source_type": "applicant_claim", "field": "budget", "label": "预算", "text": "[{\"milestone\": \"M1 完成策略合约审计\", \"usdc\": 30000}, {\"milestone\": \"M2 TVL 达到 1000 万美元\", \"usdc\": 30000}, {\"milestone\": \"M3 上线移动端\", \"usdc\": 20000}]", "verified": false}, "A7": {"id": "A7", "source_type": "applicant_claim", "field": "risk_note", "label": "风险自述", "text": "年化收益率随 TVL 增长可能下降。", "verified": false}, "P1_compliance": {"id": "P1_compliance", "source_type": "peer_opinion", "label": "上一轮 compliance 意见", "text": "[申请者自述·未独立核验] [{\"milestone\": \"M1 完成策略合约审计\", \"usdc\": 30000}, {\"milestone\": \"M2 TVL 达到 1000 万美元\", \"usdc\": 30000}, {\"milestone\": \"M3 上线移动端\", \"usdc\": 20000}]\n[评审推断·非已核实事实] [离线规则评审] 预算拆为 3 个里程碑，可分期监督；预算合计与申请金额一致（80000 USDC）；主动披露风险：年化收益率随 TVL 增长可能下降。本轮 8 分，结论 approve。申请方自述尚未独立核验。", "score": 8, "verdict": "approve", "verified": false}, "P1_pm": {"id": "P1_pm", "source_type": "peer_opinion", "label": "上一轮 pm 意见", "text": "[申请者自述·未独立核验] 内测 3 周，TVL 120 万美元，参与地址 2400 个。\n[评审推断·非已核实事实] [离线规则评审] 有清晰的收入来源；痛点描述偏定性，缺少数据；尚无真实用户验证，只有意向。本轮 5 分，结论 revise。申请方自述尚未独立核验。", "score": 5, "verdict": "revise", "verified": false}, "P1_tech": {"id": "P1_tech", "source_type": "peer_opinion", "label": "上一轮 tech 意见", "text": "[申请者自述·未独立核验] Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。\n[评审推断·非已核实事实] [离线规则评审] 技术栈明确：Solidity 策略合约 + 链下调度器。调度器每 15 分钟重新计算最优分配并触发再平衡。本轮 6 分，结论 revise。申请方自述尚未独立核验。\n[文档内容·不证明项目事实] 检索原文片段：| Attribute | Ethereum | Monad |\n| - | - | - |\n| **Transactions/second** (smart contract calls and transfers) | \\~10 | \\~10,000 |\n| **Block Frequency** | 12 seconds | 300 ms |\n| **Finality** | [2 epochs](https://hackmd.io/@prysmaticlabs/finality) (12-18 min) | 600 ms |\n| **Bytecode standard** | EVM ([Fusaka fork](https://www.evm.codes)) | EVM ([Fusaka fork](https://www.evm.codes)) |\n| **Precompiles** | `0x01` to `0x11` (Fusaka fork) | `0x01` to `0x11` (Fusaka fork) plus `0x0100` (P256, [EIP-7951](https://eips.ethereum.org/EIPS/eip-7951)) and `0x1000` (staking). See [Precompiles](https://docs.monad.xyz/developer-essentials/precompiles.md) |\n| **Max contract size** | 24.5 kb | 128 kb |\n| **RPC API** | [Ethereum RPC API](https://ethereum.org/en/developers/docs/apis/json-rpc/) | [Monad RPC API](https://docs.monad.xyz/reference/json-rpc.md) (generally identical to Ethereum RPC API, see [diffe", "score": 6, "verdict": "revise", "verified": false}, "P1_token": {"id": "P1_token", "source_type": "peer_opinion", "label": "上一轮 token 意见", "text": "[申请者自述·未独立核验] 发行 NOVA 代币。质押 NOVA 获得 38% 年化，收益来源为协议挖矿奖励与交易手续费。代币总量 1 亿枚，初始流通 8%，团队份额 25%，锁仓 3 个月后分 12 个月线性释放。为维持 38% 年化，协议每日需回购并销毁约 0.4% 流通量。新增用户质押的资金用于支付早期用户的收益。\n[评审推断·非已核实事实] [离线规则评审] 用新增资金支付存量收益；需持续回购销毁来维持收益率；团队份额过高；承诺年化 38%，显著高于无风险利率；经济结构不可持续。本轮 1 分，结论 reject。申请方自述尚未独立核验。", "score": 1, "verdict": "reject", "verified": false}}, "evidence_contract_version": "1.0", "semantic_support": "not_verified"}], "current_round": 2, "consensus": true, "final_verdict": "reject", "final_score": 3.0, "release_plan": [], "payouts": [], "trace": ["R1 compliance 发言：8分 approve", "R1 pm 发言：5分 revise", "R1 tech 发言：6分 revise", "R1 token 发言：1分 reject", "R1 汇总：均分 5.0，分差 7，存在一票否决，需再辩一轮", "—— 进入第 2 轮辩论 ——", "R2 compliance 发言：2分 reject", "R2 pm 发言：3分 reject", "R2 tech 发言：6分 revise", "R2 token 发言：1分 reject", "R2 汇总：均分 3.0，分差 5，已收敛", "定稿：reject（被 compliance 一票否决）"], "execution_mode": "rules", "decision_policy": "legacy_score_veto_v1", "chain_status": "not_submitted", "executable": false}};
+const STAMP = "2026-11-17 16:26";
+
+const ROLE_CN   = {"pm": "产品经理", "tech": "技术极客", "token": "代币经济学", "compliance": "合规与财务"};
+const ROLE_MARK = {"pm": "◆", "tech": "●", "token": "▲", "compliance": "■"};
+const ROLE_COLOR= {pm:"#7fb0ff", tech:"#6ee7a0", token:"#f0c06a", compliance:"#c9a0ff"};
+const ROLE_ORDER= ["pm","tech","token","compliance"];
+const VD = {approve:"通过", reject:"反对", revise:"需修改"};
+
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = n => Number(n).toLocaleString("en-US");
+
+function sp(code, role, rnd){
+  const c = DATA[code];
+  return (c.speeches || []).find(s => s.role === role && s.round === rnd);
+}
+
+/* ---------- 场景 2 ---------- */
+(function fillApp(){
+  const a = DATA.B.application;
+  $("f-traction").textContent = a.traction;
+
+  // 把「庞氏铁证」那一句单独拎出来放大，其余条件降为小字注脚。
+  // 这句话是申请书原文，不是我们加的判断 —— 讲的时候一定要强调这点。
+  const KEY = "新增用户质押的资金用于支付早期用户的收益";
+  $("f-scam").textContent = "「" + KEY + "」";
+  $("f-kv").innerHTML = [
+    "承诺年化 <b>38%</b>，收益来源写的是挖矿奖励与手续费",
+    "为维持这个收益率，每天需回购销毁约 <b>0.4%</b> 流通量",
+    "代币总量 1 亿枚，初始流通 8%，团队份额 25%"
+  ].map(x => `<span><i>·</i>${x}</span>`).join("");
+
+  $("f-budget").textContent = (a.budget || []).map(b =>
+    b.milestone + " " + fmt(b.usdc)).join(" · ");
+  $("f-amt").textContent = fmt(a.request_usdc);
+  $("f-name").textContent = a.name;
+  $("f-applicant").textContent = a.applicant;
+})();
+
+/* ---------- 场景 3 四评委 ----------
+   ★ 关键：这一格四条发言必须同一帧出现。
+     不能依次滑入 —— 观众会以为是 for 循环挨个调模型，并行扇出这个技术点就没了。
+     所以这 4 个 div 都不加 d1/d2/d3，只共用 .an 的同一个动画起点。
+*/
+(function fillJudges(){
+  $("judges").innerHTML = ROLE_ORDER.map(role => {
+    const s = sp("B", role, 1);
+    const say = {"pm": "痛点全是定性的，一个数都没有。进展只有内测 TVL，没有留存、没有收入。", "tech": "技术栈讲得清楚，但审计没提，再平衡的滑点保护也没提。", "token": "38% 年化靠新用户的钱付老用户，还要每天回购销毁 0.4% 流通量。这是庞氏结构。", "compliance": "预算拆成 3 期可以监督，合计 8 万和申请额对得上，还主动披露了收益风险。"}[role] || s.content;
+    return `<div class="j an" style="--c:${ROLE_COLOR[role]}">
+      <div class="top"><span class="m">${ROLE_MARK[role]}</span>${ROLE_CN[role]}</div>
+      <div class="sc num">${s.score}<s>/10</s></div>
+      <div class="vd">${VD[s.verdict] || s.verdict}</div>
+      <div class="say">${esc(say)}</div>
+      <div class="meta">${esc(s.source_mode)} · 证据 ${(s.claims||[]).length} 条</div>
+    </div>`;
+  }).join("");
+
+  $("fan-a").innerHTML = '4 个节点<b>同时发起</b>，不是排队。';
+  $("fan-b").innerHTML = '一轮墙钟耗时 ≈ 1 个最慢的节点，不是 4 倍。';
+})();
+
+/* ---------- 场景 4 分歧 ---------- */
+(function fillSplit(){
+  const r1 = ROLE_ORDER.map(r => sp("B", r, 1).score);
+  const mx = Math.max(...r1), mn = Math.min(...r1);
+  const avg = r1.reduce((a,b)=>a+b,0) / r1.length;
+  $("s-max").textContent = mx;
+  $("s-min").textContent = mn;
+  $("s-avg").textContent = avg.toFixed(1);
+  $("s-gap").textContent = mx - mn;
+})();
+
+/* ---------- 场景 5 改口 ---------- */
+$("q-flip").textContent = "预算本身没问题。但代币经济学已经被判定是庞氏，我修正自己的评分。";
+
+/* ---------- 场景 6 定稿 ---------- */
+(function fillFinal(){
+  const a = DATA.A, b = DATA.B;
+  $("c-b-name").textContent  = b.application.name.split("—")[0].trim();
+  $("c-b-score").textContent = b.final_score.toFixed(1);
+  $("c-b-on").textContent    = "综合评分 · 被 compliance 一票否决";
+  $("c-a-name").textContent  = a.application.name.split("—")[0].trim();
+  $("c-a-score").textContent = a.final_score.toFixed(1);
+  $("c-a-on").textContent    = "综合评分 · 4 票一致通过";
+
+  const plan = a.release_plan || [];
+  const total = plan.reduce((s,p)=>s + p.usdc, 0);
+  $("c-a-plan").innerHTML = plan.map(p =>
+    `<div class="r"><span>${esc(p.milestone)}</span>
+      <span class="a num">${fmt(p.usdc)}</span></div>`).join("")
+    + `<div class="r sum"><span>合计</span>
+        <span class="a num">${fmt(total)} USDC</span></div>`;
+
+  $("seam-v").textContent = plan.length + " stage";
+})();
+
+/* ---------- 场景推进 ---------- */
+const SCENES = [...document.querySelectorAll(".scene")];
+const TOTAL = SCENES.length;
+let cur = 0, hinted = false;
+
+function paint(){
+  SCENES.forEach((s, i) => {
+    // 先摘掉 on 让动画重置，再加回去 —— 否则回退再前进时动画不会重播
+    s.classList.remove("on");
+    if (i === cur) {
+      void s.offsetWidth;          // 强制重排，重启 CSS 动画
+      s.classList.add("on");
+    }
+  });
+  $("bar").style.width = ((cur + 1) / TOTAL * 100) + "%";
+  $("pg").textContent = String(cur + 1).padStart(2, "0") + " / " + String(TOTAL).padStart(2, "0");
+  if (!hinted && cur > 0) { $("hint").classList.add("hide"); }
+}
+
+function go(n, sync){
+  cur = Math.max(0, Math.min(TOTAL - 1, n));
+  paint();
+  if (sync !== false) history.replaceState(null, "", "#" + cur);
+}
+
+document.addEventListener("keydown", e => {
+  if ([" ", "ArrowRight", "PageDown", "Enter", "n"].includes(e.key)) {
+    e.preventDefault(); go(cur + 1);
+  } else if (["ArrowLeft", "PageUp", "Backspace", "p"].includes(e.key)) {
+    e.preventDefault(); go(cur - 1);
+  } else if (e.key === "Home") { go(0); }
+  else if (e.key === "End")    { go(TOTAL - 1); }
+});
+
+// 点击：右侧 70% 前进，左侧 30% 后退。现场用遥控翻页笔也能触发。
+document.addEventListener("click", e => {
+  if (e.clientX > window.innerWidth * 0.3) go(cur + 1);
+  else go(cur - 1);
+});
+
+// 深链：#5 直接跳到第 5 幕
+const h = parseInt((location.hash || "").slice(1), 10);
+if (!Number.isNaN(h)) cur = Math.max(0, Math.min(TOTAL - 1, h));
+paint();
+
+// ?print=1 -> 摊开全部幕，给 Ctrl+P 导出 PDF 用
+// 也可以直接浏览器搜 "?print=1"，看不到任何按钮也不影响正常演示
+if (new URLSearchParams(location.search).get("print") === "1") {
+  document.body.classList.add("flat");
+}
+</script>
+</body>
+</html>

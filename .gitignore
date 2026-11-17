@@ -20,6 +20,10 @@ out/*.json
 # 但演示页要保留
 !out/demo.html
 
+# 临时截图 / 无头浏览器 profile
+.shots/
+.edgetmp/
+
 # IDE
 .idea/
 .vscode/

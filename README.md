@@ -12,7 +12,7 @@
 
 ## 为什么"4 个 Agent 吵架"比"1 个 Agent 打分"有意义
 
-单模型评审的问题是**它永远给出温和的中间分**，因为在它的训练里"综合考虑"是最安全的回答。
+我们希望通过分角色评审发现不同维度的风险；尚未完成与单模型的系统对比实验。
 
 我们让它变成四个**有偏见、有立场、会互相说服**的角色：
 
@@ -24,8 +24,7 @@
 | 合规与财务 | 程序与风控红线 | "有一个维度不可持续，这轮就不放款" |
 
 **真正的看点是第二轮的改口**：第一轮合规给了 8 分，看到代币经济学指出
-"用新钱付旧账"之后，第二轮压到 2 分并支持驳回。这不是写死的分支，
-而是因为它真的读到了对方那句话。
+"用新钱付旧账"之后，第二轮压到 2 分并支持驳回。离线模式由复议规则触发分数调整；真实模型需要单独验证。
 
 ## 三个准备好的案例
 
@@ -75,9 +74,38 @@ $env:COMMITTEE_MODE="offline"
 | `committee/rules.py` | 离线规则引擎 | 想改打分逻辑时 |
 | `committee/llm.py` | 三层降级 | 想接新模型时 |
 | `applications/*.json` | 三份申请书剧本 | 想造新案例时 |
-| `out/demo.html` | **单文件演示页，双击就能看** | 给评委看的那个 |
+| `out/pitch.html` | **上台讲的那个，8 幕，空格推进** | 路演时投屏 |
+| `out/pitch.pdf` | 同上，8 页 PDF（投影仪不认浏览器时用） | 备胎 |
+| `out/demo.html` | 结果回放页，全部铺开 | 评委来查细节时 |
 | `out/*_result.json` | 三个案例的运行结果存档 | 查历史输出 |
 | `teaching/t1~t3` | 教学教具，不是产品代码 | 学 LangGraph 时 |
+
+## 上台讲用哪个
+
+两个页面，两种用途，别搞混：
+
+| 文件 | 用途 | 特点 |
+|---|---|---|
+| `out/pitch.html` | **讲故事** | 一屏一幕，8 幕，制造悬念 |
+| `out/demo.html` | **被追问** | 全部铺开，给评委自己翻 |
+
+生成：
+
+```bash
+python export_pitch.py          # -> out/pitch.html
+python export_pitch.py --pdf    # -> out/pitch.html + out/pitch.pdf
+python export_pitch.py --check  # 只核对台词数字，不生成
+python export_html.py           # -> out/demo.html
+```
+
+**`--check` 是干什么的**：`pitch.html` 里的台词是手写的口语句子
+（JSON 里的原文带 `[申请者自述·未独立核验]` 这种前缀，投到屏幕上后排看不清）。
+手写就有写错的可能，所以生成前会拿台词里的分数跟 `out/*.json` 逐个对一遍，
+对不上直接报错退出——**不让你带着错的数字上台**。
+
+现场操作：空格 / → / PageDown 前进，← / PageUp 后退，Home / End 首尾，
+点屏幕右侧 70% 前进、左侧 30% 后退（翻页笔也能用）。
+`out/pitch.html#5` 直接跳到第 5 幕。
 
 ## 接真模型
 
@@ -88,8 +116,8 @@ export LLM_MODEL=deepseek-chat
 python run.py
 ```
 
-代码里做了**三层降级**：真模型 → 本地模型 → 规则引擎。
-现场 WiFi 抽风、API 限流、Key 失效，都不会让 Demo 卡死。
+auto 模式支持真实模型 → 规则引擎降级，并标记来源；live 模式失败时报错。尚未实现本地模型。
+现场 WiFi 抽风、API 限流、Key 失效，可切换到离线规则或回放；实时链上操作仍需要网络。
 
 ## 图结构
 
@@ -137,10 +165,28 @@ monad-blitz/
 │   ├── llm.py        三层降级的模型调用
 │   └── graph.py      图编排
 ├── applications/     3 份申请书（Demo 剧本）
-├── out/              结果存档 + demo.html
+├── out/              结果存档 + pitch.html（上台用）+ demo.html（查数据用）
 ├── run.py            命令行运行器
-└── export_html.py    导出单文件演示页
+├── export_pitch.py   导出上台版 8 幕 HTML / PDF
+└── export_html.py    导出结果回放页
 ```
+
+## 现场演示的三层保险
+
+按「越往下越兜底」排：
+
+1. **`out/pitch.html`** —— 主用。纯静态，双击就开，断网也能演。
+2. **`out/pitch.pdf`** —— 投影仪不认浏览器、或者只能插 U 盘拷文件时用。8 页，16:9。
+3. **`review_service.py --serve`** —— 只有在评委问「能不能现场给一份新申请书跑一遍」时才启动。
+   纯标准库，`http://127.0.0.1:8765`，`POST /review`。不起服务完全不影响前两层。
+
+```bash
+# 第三层才用，平时不要开
+python review_service.py --serve
+```
+
+**为什么不做成前后端分离的 Web 应用**：`fastapi` / `uvicorn` 本机都没装，
+现场 WiFi 也不可靠。能静态就静态——7 小时的黑客松，不要给自己多一个能翻车的环节。
 
 ## 待接（队友的合约）
 
@@ -157,4 +203,24 @@ monad-blitz/
 
 - Python 3.13
 - langgraph 1.2.15
-- 离线模式无需任何第三方依赖
+- 离线模式无需模型 API，仍需 langgraph
+
+
+## AI 侧加固与联调
+
+新增输入和模型输出校验、来源标记和本机评审接口。详见 [docs/AI_INTEGRATION.md](docs/AI_INTEGRATION.md)。
+拨款计划仅为建议，未接链、不签名、不锁资。
+
+
+## 官方资料与本地模型
+- 六份官方文档快照：`knowledge/official/`，来源及 SHA-256 清单为 `manifest.json`。
+- 检索为本地词法检索，官方原文与自编策略分别标记；原文不能证明申请方的事实陈述。
+- Ollama 通过兼容接口接入，模型为本机已有的 `qwen2.5:7b`，无需另装模型。
+- 本地推理默认串行；延迟实测见 `out/ollama_7b_benchmark/`，不能沿用远程四路并行的耗时假设。
+- `scripts/sync_monad_docs.py` 可重新抓取六份官方资料；更新后应核对清单并运行测试。
+- `scripts/pilot_ollama.py` 可重跑小规模测试；注意会产生本机推理负载。
+
+
+## AI 侧交付与证据校验
+
+当前交付状态、文件位置和未完成职责见 `docs/AI_DELIVERY_STATUS.md`；接口说明见 `docs/AI_INTEGRATION.md`。证据编号校验不代表语义真实性核验，建议拨款计划尚未上链。
